@@ -73,10 +73,21 @@ az keyvault set-policy -g $rgName -n $kvName --object-id $aadObjId --key-permiss
 az keyvault set-policy -g $rgName -n $kvName --object-id $aadObjId --secret-permissions list get create delete update
 ```
 
-4. Grant current user to AAD role
+4. Grant service principal access to resource group 
 ``` bash
-currentUser=$(az ad user list --query "[?contains(userPrincipalName, '${currentUserPrincipalName}')]")
 az role assignment create --assignee $aadAppId --role Contributor
 # which one??
 # az role assignment create --assignee $aadObjId --role Contributor
 ```
+
+5. Grant current user to AAD role
+``` bash
+currentUser=$(az ad user list --query "[?contains(userPrincipalName, '${currentUserPrincipalName}')]")
+
+```
+
+6. Install certificate to local devbox
+az keyvault certificate download --file ${certName}.pem --name $certName --vault-name $kvName --encoding PEM 
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychains/System.keychain ${certName}.pem
+
+7. From now on, user will login as service principal 
