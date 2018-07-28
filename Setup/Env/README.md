@@ -4,6 +4,8 @@ CI/CD pipeline will use a service principal that have access to azure Key Vault 
 
 Service principal is granted access to Key Vault via certificate (not password).
 
+![layout](env.png)
+
 ## Instruction
 
 __for demo purpose, I will use personal azure subscription so that I can assign roles to AAD app__
