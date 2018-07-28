@@ -1,0 +1,5 @@
+global:
+    productName: helloworld
+    envName: dev
+    rand: 1es
+    location: wus2

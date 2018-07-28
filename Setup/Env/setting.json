@@ -1,0 +1,14 @@
+{
+  "name": "dev",
+  "environmentGroupName": "nonprod",
+  "location": "wus2",
+  "productName": "helloworld",
+  "sfClusters": {
+    "wus2": {
+      "location": "west us 2",
+      "frontEndNodeCount": 3,
+      "backEndNodeCount": 3,
+      "managementNodeCount": 3
+    }
+  }
+}
