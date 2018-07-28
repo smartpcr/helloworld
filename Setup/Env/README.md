@@ -66,10 +66,16 @@ az ad sp create-for-rbac -n $spName --role contributor \
 az ad sp show --id http://${spName}
 aadAppId=$(az ad sp show --id http://${spName} --query appId -o tsv)
 aadObjId=$(az ad sp show --id http://${spName} --query objectId -o tsv)
+
+# grant KV access to service principal
+az keyvault set-policy -g $rgName -n $kvName --object-id $aadObjId --certificate-permissions list get create delete update
+az keyvault set-policy -g $rgName -n $kvName --object-id $aadObjId --key-permissions list get create delete update
+az keyvault set-policy -g $rgName -n $kvName --object-id $aadObjId --secret-permissions list get create delete update
 ```
 
 4. Grant current user to AAD role
 ``` bash
+currentUser=$(az ad user list --query "[?contains(userPrincipalName, '${currentUserPrincipalName}')]")
 az role assignment create --assignee $aadAppId --role Contributor
 # which one??
 # az role assignment create --assignee $aadObjId --role Contributor
