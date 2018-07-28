@@ -15,14 +15,14 @@ __for demo purpose, I will use personal azure subscription so that I can assign 
 3. create AAD app with id helloworld_dev_xiaodoli_sp and use cert for credential
 4. grant current user access to AAD app (only needed for local devbox setup, CI/CD pipeline will use the same service principal)
 
-## Create Self-Signed Certificate
-
+## Bootstrap service principal authentication
 __this is only for dev/test, production certificate will be created from trusted CA and then imported to Key Vault__
 
 1. Create resource group and key vault 
 ``` bash
-location="westus2"
-loc="wus2"
+# these values are obtained from yaml file based on target environment
+location=westus2
+loc=wus2
 subscriptionName=BizSpark-xdxli
 productName=helloworld
 productShortName=hw
@@ -30,11 +30,15 @@ envName=dev
 rand=xiaodoli
 currentUserPrincipalName=lingxd_gmail.com#EXT#@xdxlioutlook.onmicrosoft.com
 
+# login and set subscription 
 az login
 az account set -s $subscriptionName
+
+# create resource group 
 rgName=${productName}-${envName}-${rand}-${loc}-rg
 az group create -n $rgName -l $location
 
+# create key vault 
 kvName=${productShortName}-${envName}-${rand}-kv # make sure vault name length <= 24
 kvNameSize=${#kvName}
 if [ $kvNameSize \> 24 ]; then 
@@ -50,7 +54,7 @@ az keyvault create -g $rgName -n $kvName -l $location
 ``` bash
 certName=${productName}-${envName}-${rand}-${loc}-sp
 az keyvault certificate create -n $certName --vault-name $kvName \
--p "$(az keyvault certificate get-default-policy)"
+    -p "$(az keyvault certificate get-default-policy)"
 
 ```
 
@@ -81,15 +85,17 @@ az role assignment create --assignee-object-id $aadObjId --role Contributor \
     --scope /subscriptions/${subscriptionId}/resourceGroups/${rgName}
 ```
 
-5. Grant current user to AAD role
+5. Grant current user ownership AAD app (service principal)
 ``` bash
 currentUser=$(az ad user list --query "[?contains(userPrincipalName, '${currentUserPrincipalName}')]")
-
+# TODO: figure out how to do owner assignment on AAD
 ```
 
 6. Download certificate
 ``` bash
 az keyvault certificate download --file ${certName}.pem --name $certName --vault-name $kvName --encoding PEM 
+
+# the following is not needed unless it's SSL certificate
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychains/System.keychain ${certName}.pem
 ```
 

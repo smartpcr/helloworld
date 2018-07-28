@@ -1,0 +1,4 @@
+# do not check in certificate files
+.pem
+.pfx
+.cer 
