@@ -15,7 +15,6 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 
-
 Install-Module powershell-yaml
 Import-Module "$scriptFolder\common.psm1" -Force
 
@@ -27,3 +26,7 @@ if ($envName) {
         Copy-YamlObject -fromObj $envValues -toObj $values
     }
 }
+
+# login and set subscription 
+
+az account set -s $values.global.subscriptionName

@@ -3,4 +3,6 @@ global:
     productShortName: hw
     envName: dev
     rand: 1es
-    location: wus2
+    location: westus2
+    loc: wus2
+    subscriptionName: BizSpark-xdxli
