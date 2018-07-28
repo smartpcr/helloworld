@@ -56,15 +56,12 @@ az keyvault certificate create -n $certName --vault-name $kvName \
 
 3. Create service principal for RBAC
 ``` bash
-subscriptionId=$(az account show --query id -o tsv)
-userName=$(az account show --query user.name)
 spName=${productName}-${envName}-${rand}-${loc}-sp
 
 az ad sp create-for-rbac -n $spName --role contributor \
---keyvault $kvName --cert $certName 
+    --keyvault $kvName --cert $certName 
 
 az ad sp show --id http://${spName}
-aadAppId=$(az ad sp show --id http://${spName} --query appId -o tsv)
 aadObjId=$(az ad sp show --id http://${spName} --query objectId -o tsv)
 
 # grant KV access to service principal
@@ -75,9 +72,13 @@ az keyvault set-policy -g $rgName -n $kvName --object-id $aadObjId --secret-perm
 
 4. Grant service principal access to resource group 
 ``` bash
-az role assignment create --assignee $aadAppId --role Contributor
-# which one??
-# az role assignment create --assignee $aadObjId --role Contributor
+az role assignment create --assignee-object-id $aadObjId --role Contributor \
+    --resource-group $rgName \
+
+# use the following 
+subscriptionId=$(az account show --query id -o tsv)
+az role assignment create --assignee-object-id $aadObjId --role Contributor \
+    --scope /subscriptions/${subscriptionId}/resourceGroups/${rgName}
 ```
 
 5. Grant current user to AAD role
@@ -86,8 +87,13 @@ currentUser=$(az ad user list --query "[?contains(userPrincipalName, '${currentU
 
 ```
 
-6. Install certificate to local devbox
+6. Download certificate
+``` bash
 az keyvault certificate download --file ${certName}.pem --name $certName --vault-name $kvName --encoding PEM 
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychains/System.keychain ${certName}.pem
+```
 
 7. From now on, user will login as service principal 
+``` bash
+az login --service-principal -u http://${spName} -p --certificate-file ${certName}.pem
+```
