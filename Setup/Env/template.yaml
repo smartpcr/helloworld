@@ -1,9 +1,9 @@
 global:
-    dns: $(productName)_$(envName)
-    servicePrincipal: $(dns)_$(rand)_sp
-    resourceGroup: $$(dns)_$(rand)_$(location)_rg
-    keyVault: $(dns)_$(rand)_kv
-    serviceFabric: $(dns)_$(rand)_$(location)_sf
-    kubernetes: $(dns)_$(rand)_k8s
+    dns: $(productShortName)-$(envName)
+    servicePrincipal: $(dns)-$(rand)-sp
+    resourceGroup: $$(dns)-$(rand)-$(location)-rg
+    keyVault: $(dns)-$(rand)-kv
+    serviceFabric: $(dns)-$(rand)-$(location)-sf
+    kubernetes: $(dns)-$(rand)-k8s
 keyVault:
     
