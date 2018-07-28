@@ -2,7 +2,3 @@
 .pem
 .pfx
 .cer 
-
-build/
-.idea/
-bin/
