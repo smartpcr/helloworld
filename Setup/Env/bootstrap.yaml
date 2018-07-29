@@ -2,15 +2,15 @@ global:
     subscriptionName: {{ .Values.subscriptionName }}
     tenantId: {{ .Values.tenantId }}
     location: {{ .Values.location }}
-    dns: {{ .Values.productName }}-{{ .Values.envName }}
-    servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-sp
-    resourceGroup: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-rg
-    keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.rand }}-kv
-    serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-sf
-    kubernetes: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-k8s
+    dns: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}
+    servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sp
+    resourceGroup: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-rg
+    keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-kv
+    serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf
+    kubernetes: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s
 keyVault:
     certs:
-        servicePrincipleCert: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-sp
+        servicePrincipleCert: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp
         apiSslCert: 
         sfClusterMgrCert:
 sfCluster:
