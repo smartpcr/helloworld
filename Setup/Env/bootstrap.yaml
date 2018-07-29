@@ -2,7 +2,7 @@ global:
     subscriptionName: {{ .Values.subscriptionName }}
     location: {{ .Values.location }}
     dns: {{ .Values.productName }}-{{ .Values.envName }}
-    servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-sp
+    servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-sp
     resourceGroup: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-rg
     keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.rand }}-kv
     serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-sf

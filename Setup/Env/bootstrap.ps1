@@ -32,9 +32,9 @@ $bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $val
 $bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml
 
 # login and set subscription 
-Connect-AzureRmAccount
 $rmContext = Get-AzureRmContext
 if (!$rmContext -or $rmContext.Subscription.Name -ne $bootstrapValues.global.subscriptionName) {
+    Login-AzureRmAccount
     Set-AzureRmContext -Subscription $bootstrapValues.global.subscriptionName
     $rmContext = Get-AzureRmContext
 }
@@ -54,3 +54,31 @@ if (!kv) {
         -EnabledForDiskEncryption -EnableSoftDelete `
         -Location $bootstrapValues.global.location
 }
+
+# create service principal (SPN)
+# vGet-AzureRmADServicePrincipal | Select-Object -Property DisplayName, Id | Sort-Object -Property Id | Format-Table
+$spnName = $bootstrapValues.global.servicePrincipal
+$spn = Get-AzureRmADServicePrincipal | Where-Object { $_.DisplayName -eq $spnName }
+if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
+    throw "There are more than one service principal with the same name '$spnName'"
+} 
+if (!$spn) {
+    Write-Host "Creating service principal with name '$spnName'"
+    $certName = $spnName
+    $cert = Get-AzureKeyVaultCertificate -VaultName $bootstrapValues.global.keyVault -Name $certName -ErrorAction SilentlyContinue
+    if (!$cert) {
+        $policy = New-AzureKeyVaultCertificatePolicy -SubjectName "CN=$spnName" -IssuerName Self -ValidityInMonths 12
+        # Set-AzureRmKeyVaultAccessPolicy -VaultName $bootstrapValues.global.keyVault -UserPrincipalName ‘patti.fuller@contoso.com' -PermissionsToCertificates all
+        Add-AzureKeyVaultCertificate -VaultName $bootstrapValues.global.keyVault -Name $certName -CertificatePolicy $policy
+    }
+    $spn = Get-OrCreateServicePrincipal -servicePrincipalName $spnName -vaultName $bootstrapValues.global.keyVault
+}
+
+Grant-ServicePrincipalPermissions `
+    -servicePrincipalId $spn.Id `
+    -subscriptionId $rmContext.Subscription.Id `
+    -resourceGroupName $bootstrapValues.global.resourceGroup `
+    -vaultName $bootstrapValues.global.keyVault
+
+# connect as service principal
+Connect-AzureRmAccount -ServicePrincipal $spnName 
