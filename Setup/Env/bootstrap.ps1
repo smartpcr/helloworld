@@ -27,6 +27,30 @@ if ($envName) {
     }
 }
 
-# login and set subscription 
+$bootstrapTemplate = Get-Content "$scriptFolder\bootstrap.yaml" -Raw
+$bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $values
+$bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml
 
-az account set -s $values.global.subscriptionName
+# login and set subscription 
+Connect-AzureRmAccount
+$rmContext = Get-AzureRmContext
+if (!$rmContext -or $rmContext.Subscription.Name -ne $bootstrapValues.global.subscriptionName) {
+    Set-AzureRmContext -Subscription $bootstrapValues.global.subscriptionName
+    $rmContext = Get-AzureRmContext
+}
+
+# create resource group 
+$rg = Get-AzureRmResourceGroup -Name $bootstrapValues.global.resourceGroup -ErrorAction SilentlyContinue
+if (!$rg) {
+    New-AzureRmResourceGroup -Name $bootstrapValues.global.resourceGroup -Location $bootstrapValues.global.location
+}
+
+# create key vault 
+$kv = Get-AzureRmKeyVault -VaultName $bootstrapValues.global.keyVault -ResourceGroupName $bootstrapValues.global.resourceGroup -ErrorAction SilentlyContinue
+if (!kv) {
+    New-AzureRmKeyVault -Name $bootstrapValues.global.keyVault `
+        -ResourceGroupName $bootstrapValues.global.resourceGroup `
+        -Sku Standard -EnabledForDeployment -EnabledForTemplateDeployment `
+        -EnabledForDiskEncryption -EnableSoftDelete `
+        -Location $bootstrapValues.global.location
+}

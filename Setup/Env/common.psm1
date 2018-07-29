@@ -31,3 +31,29 @@ function Copy-YamlObject {
         }
     }
 }
+
+function Set-Values {
+    param (
+        [object] $valueTemplate,
+        [object] $settings
+    )
+
+    $regex = New-Object System.Text.RegularExpressions.Regex("\{\{\s*\.Values\.(\w+)\s*\}\}")
+    $match = $regex.Match($valueTemplate)
+    while ($match.Success) {
+        $toBeReplaced = $match.Value
+        $searchKey = $match.Groups[1].Value
+        $found = $settings.Keys | Where-Object { $_ -eq $searchKey }
+        if ($found) {
+            $replaceValue = $settings.Item($found)
+            Write-Host "Replace $toBeReplaced with $replaceValue"
+            $valueTemplate = ([string]$valueTemplate).Replace($toBeReplaced, $replaceValue)
+            $match = $regex.Match($valueTemplate)
+        }
+        else {
+            $match = $match.NextMatch()
+        }
+    }
+
+    return $valueTemplate
+}

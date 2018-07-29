@@ -1,8 +1,7 @@
-global:
-    productName: helloworld
-    productShortName: hw
-    envName: dev
-    rand: 1es
-    location: westus2
-    loc: wus2
-    subscriptionName: BizSpark-xdxli
+productName: helloworld
+productShortName: hw
+envName: dev
+rand: 1es
+location: westus2
+loc: wus2
+subscriptionName: BizSpark-xdxli

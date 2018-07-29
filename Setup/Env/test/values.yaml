@@ -1,3 +1,2 @@
-global:
-    envName: test
-    rand: test
+envName: test
+rand: int

@@ -1,0 +1,21 @@
+global:
+    subscriptionName: {{ .Values.subscriptionName }}
+    location: {{ .Values.location }}
+    dns: {{ .Values.productName }}-{{ .Values.envName }}
+    servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-sp
+    resourceGroup: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-rg
+    keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.rand }}-kv
+    serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-sf
+    kubernetes: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-k8s
+keyVault:
+    certs:
+        servicePrincipleCert: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-sp
+        apiSslCert: 
+        sfClusterMgrCert:
+sfCluster:
+    nodeTypes:
+        - frontend
+        - backend
+        - management
+aksCluster:
+    nodeCount: 3
