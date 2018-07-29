@@ -1,5 +1,6 @@
 global:
     subscriptionName: {{ .Values.subscriptionName }}
+    tenantId: {{ .Values.tenantId }}
     location: {{ .Values.location }}
     dns: {{ .Values.productName }}-{{ .Values.envName }}
     servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.rand }}-{{ .Values.loc }}-sp

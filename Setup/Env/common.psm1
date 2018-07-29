@@ -77,6 +77,15 @@ function Get-OrCreateCertificateInKeyVault {
     return $cert 
 }
 
+<#
+    It assumes service principal has unique display name in current directory
+    When service principal is already created, return it directly
+    Otherwise create a service principal and protect it with certificate.
+    key vault is required to store BOTH cert and cert password
+    1) a self-signed cert is created and added to key vault. Certificate secret name is 
+    the same as service principal name.
+    2) Service principal is created by specifying name and cert credential
+#>
 function Get-OrCreateServicePrincipal {
     param(
         [string] $servicePrincipalName,
@@ -87,37 +96,35 @@ function Get-OrCreateServicePrincipal {
     if ($sp -and $sp -is [array] -and ([array]$sp).Count -ne 1) {
         throw "There are more than one service principal with the same name: '$servicePrincipalName'"
     }
+    if ($sp) {
+        return $sp;
+    }
 
-    if (!$sp) {
-        $spCertPwdSecretName = "$servicePrincipalName-pwd"
-        $spCertPwdSecret = Get-OrCreatePasswordInVault -vaultName $vaultName -secretName $spCertPwdSecretName
-        $spCert = Get-OrCreateCertificateInKeyVault -certName $servicePrincipalName -vaultName $vaultName
-        $thumbprint = $spCert.Thumbprint
-        $pwd = $spCertPwdSecret.SecretValue
-        Export-PfxCertificate -cert Cert:\LocalMachine\My\$thumbprint -FilePath "$($spnName).pfx" -Password $pwd
+    $cert = New-SelfSignedCertificate `
+        -CertStoreLocation "cert:\CurrentUser\My" `
+        -Subject "CN=$servicePrincipalName" `
+        -KeySpec KeyExchange `
+        -HashAlgorithm "SHA256" `
+        -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider"
 
-        # TODO: change to use certificate
-        New-AzureRmADServicePrincipal `
+    try {
+        $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
+    
+        $sp = New-AzureRMADServicePrincipal `
             -DisplayName $servicePrincipalName `
-            -Password $spCertPwdSecret.SecretValueText `
-            -StartDate (Get-Date) `
-            -EndDate ((Get-Date).AddYears(1))
+            -CertValue $certValueWithoutPrivateKey `
+            -EndDate $cert.NotAfter `
+            -StartDate $cert.NotBefore
+      
+        $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
 
-        $trials = 0
-        $sleepIntervalSeconds = 5
-        $sp = Get-AzureRmADServicePrincipal -SearchString $servicePrincipalName | Where-Object { $_.DisplayName -ieq $servicePrincipalName }
-        while ($sp -eq $null -and $trials -lt 10) {
-            Start-Sleep $sleepIntervalSeconds
-            $trials++
-            $sp = Get-AzureRmADServicePrincipal -SearchString $servicePrincipalName | Where-Object { $_.DisplayName -ieq $servicePrincipalName }
-        }
+        Import-AzureKeyVaultCertificate -VaultName $vaultName -Name "$servicePrincipalName" -CertificateString $completeCertData
+
+        return $sp
     }
-
-    if ($sp -eq $null) {
-        throw "Unable to create service principal with name '$spName'"
+    finally {
+        Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
     }
-
-    return $sp 
 }
 
 function Grant-ServicePrincipalPermissions {

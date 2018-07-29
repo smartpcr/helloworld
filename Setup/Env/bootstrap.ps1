@@ -39,25 +39,27 @@ if (!$rmContext -or $rmContext.Subscription.Name -ne $bootstrapValues.global.sub
     $rmContext = Get-AzureRmContext
 }
 
+$spnName = $bootstrapValues.global.servicePrincipal
+$vaultName = $bootstrapValues.global.keyVault
+$rgName = $bootstrapValues.global.resourceGroup
+
 # create resource group 
-$rg = Get-AzureRmResourceGroup -Name $bootstrapValues.global.resourceGroup -ErrorAction SilentlyContinue
+$rg = Get-AzureRmResourceGroup -Name $rgName -ErrorAction SilentlyContinue
 if (!$rg) {
-    New-AzureRmResourceGroup -Name $bootstrapValues.global.resourceGroup -Location $bootstrapValues.global.location
+    New-AzureRmResourceGroup -Name $rgName -Location $bootstrapValues.global.location
 }
 
 # create key vault 
-$kv = Get-AzureRmKeyVault -VaultName $bootstrapValues.global.keyVault -ResourceGroupName $bootstrapValues.global.resourceGroup -ErrorAction SilentlyContinue
+$kv = Get-AzureRmKeyVault -VaultName $vaultName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 if (!kv) {
-    New-AzureRmKeyVault -Name $bootstrapValues.global.keyVault `
-        -ResourceGroupName $bootstrapValues.global.resourceGroup `
+    New-AzureRmKeyVault -Name $vaultName `
+        -ResourceGroupName $rgName `
         -Sku Standard -EnabledForDeployment -EnabledForTemplateDeployment `
         -EnabledForDiskEncryption -EnableSoftDelete `
         -Location $bootstrapValues.global.location
 }
 
 # create service principal (SPN)
-# vGet-AzureRmADServicePrincipal | Select-Object -Property DisplayName, Id | Sort-Object -Property Id | Format-Table
-$spnName = $bootstrapValues.global.servicePrincipal
 $spn = Get-AzureRmADServicePrincipal | Where-Object { $_.DisplayName -eq $spnName }
 if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
     throw "There are more than one service principal with the same name '$spnName'"
@@ -65,20 +67,25 @@ if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
 if (!$spn) {
     Write-Host "Creating service principal with name '$spnName'"
     $certName = $spnName
-    $cert = Get-AzureKeyVaultCertificate -VaultName $bootstrapValues.global.keyVault -Name $certName -ErrorAction SilentlyContinue
+    $cert = Get-AzureKeyVaultCertificate -VaultName $vaultName -Name $certName -ErrorAction SilentlyContinue
     if (!$cert) {
         $policy = New-AzureKeyVaultCertificatePolicy -SubjectName "CN=$spnName" -IssuerName Self -ValidityInMonths 12
-        # Set-AzureRmKeyVaultAccessPolicy -VaultName $bootstrapValues.global.keyVault -UserPrincipalName ‘patti.fuller@contoso.com' -PermissionsToCertificates all
-        Add-AzureKeyVaultCertificate -VaultName $bootstrapValues.global.keyVault -Name $certName -CertificatePolicy $policy
+        Add-AzureKeyVaultCertificate -VaultName $vaultName -Name $certName -CertificatePolicy $policy
     }
-    $spn = Get-OrCreateServicePrincipal -servicePrincipalName $spnName -vaultName $bootstrapValues.global.keyVault
+    $spn = Get-OrCreateServicePrincipal -servicePrincipalName $spnName -vaultName $vaultName
 }
 
 Grant-ServicePrincipalPermissions `
     -servicePrincipalId $spn.Id `
     -subscriptionId $rmContext.Subscription.Id `
-    -resourceGroupName $bootstrapValues.global.resourceGroup `
-    -vaultName $bootstrapValues.global.keyVault
+    -resourceGroupName $rgName `
+    -vaultName $vaultName
 
-# connect as service principal
-Connect-AzureRmAccount -ServicePrincipal $spnName 
+# connect as service principal 
+$spnCert = Get-AzureKeyVaultCertificate -VaultName $vaultName -Name $spnName 
+
+Login-AzureRmAccount `
+    -TenantId $bootstrapValues.global.tenantId `
+    -ServicePrincipal `
+    -CertificateThumbprint $spnCert.Thumbprint `
+    -ApplicationId $spn.ApplicationId
