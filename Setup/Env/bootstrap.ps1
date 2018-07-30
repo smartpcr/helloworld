@@ -14,22 +14,9 @@ $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
-
-Install-Module powershell-yaml
 Import-Module "$scriptFolder\common.psm1" -Force
 
-$values = Get-Content "$scriptFolder\values.yaml" -Raw | ConvertFrom-Yaml
-if ($envName) {
-    $envValueYamlFile = "$scriptFolder\$envName\values.yaml"
-    if (Test-Path $envValueYamlFile) {
-        $envValues = Get-Content $envValueYamlFile -Raw | ConvertFrom-Yaml
-        Copy-YamlObject -fromObj $envValues -toObj $values
-    }
-}
-
-$bootstrapTemplate = Get-Content "$scriptFolder\bootstrap.yaml" -Raw
-$bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $values
-$bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml
+$bootstrapValues = Get-EnvironmentSettings -envName $envName
 
 # login and set subscription 
 $rmContext = Get-AzureRmContext
@@ -46,6 +33,7 @@ $rgName = $bootstrapValues.global.resourceGroup
 # create resource group 
 $rg = Get-AzureRmResourceGroup -Name $rgName -ErrorAction SilentlyContinue
 if (!$rg) {
+    Write-Host "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
     New-AzureRmResourceGroup -Name $rgName -Location $bootstrapValues.global.location
 }
 
@@ -66,12 +54,6 @@ if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
 } 
 if (!$spn) {
     Write-Host "Creating service principal with name '$spnName'"
-    $certName = $spnName
-    $cert = Get-AzureKeyVaultCertificate -VaultName $vaultName -Name $certName -ErrorAction SilentlyContinue
-    if (!$cert) {
-        $policy = New-AzureKeyVaultCertificatePolicy -SubjectName "CN=$spnName" -IssuerName Self -ValidityInMonths 12
-        Add-AzureKeyVaultCertificate -VaultName $vaultName -Name $certName -CertificatePolicy $policy
-    }
     $spn = Get-OrCreateServicePrincipal -servicePrincipalName $spnName -vaultName $vaultName
 }
 
@@ -82,10 +64,4 @@ Grant-ServicePrincipalPermissions `
     -vaultName $vaultName
 
 # connect as service principal 
-$spnCert = Get-AzureKeyVaultCertificate -VaultName $vaultName -Name $spnName 
-
-Login-AzureRmAccount `
-    -TenantId $bootstrapValues.global.tenantId `
-    -ServicePrincipal `
-    -CertificateThumbprint $spnCert.Thumbprint `
-    -ApplicationId $spn.ApplicationId
+Connect-ToAzure -envName $envName
