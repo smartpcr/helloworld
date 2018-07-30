@@ -222,45 +222,7 @@ function Get-EnvironmentSettings {
     return $bootstrapValues
 }
 
-function Copy-CertificateAsJson {
-    param(
-        [string] $SourceVaultName,
-        [string] $CertificateName, 
-        [string] $DestinationVault
-    )
-    $unprotectedBytes = [System.Convert]::FromBase64String((Get-AzureKeyVaultSecret -VaultName $SourceVaultName -Name $CertificateName).SecretValueText)
-    $cert = new-object system.Security.Cryptography.X509Certificates.X509Certificate2
-    $cert.Import($unprotectedBytes, $null, 'Exportable')
-    $password = (GetOrCreatePasswordInVault -vaultName $DestinationVault -secretName "$CertificateName-pws").SecretValueText
-    $pfxProtectedBytes = $cert.Export('Pkcs12', $password)
-
-    $jsonBlob = @{
-        data     = [System.Convert]::ToBase64String($pfxProtectedBytes)
-        dataType = 'pfx'
-        password = $password
-    } | ConvertTo-Json
-     
-    $contentbytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBlob)
-    $content = [System.Convert]::ToBase64String($contentbytes)
-    
-    $secret = GetOrUpdateSecret -VaultName $DestinationVault -SecretName $CertificateName -SecretValue $content 
-
-    return @{
-        certificateUri        = $secret.Id
-        certificateThumbprint = $cert.Thumbprint
-    }
-}
-
-function GetOrUpdateSecret($VaultName, $SecretName, $SecretValue) {
-    $res = Get-AzureKeyVaultSecret -VaultName $VaultName -Name $SecretName -ErrorAction Ignore
-    if ($res -and ($res.SecretValueText -eq $SecretValue)) {
-        return $res
-    }
-
-    return Set-AzureKeyVaultSecret -VaultName $VaultName -Name $SecretName -SecretValue (ConvertTo-SecureString -String $SecretValue -AsPlainText -Force)
-}
-
-function GetOrCreateSelfSignedCertificateInVault {
+function Get-OrCreateSelfSignedCertificateInVault {
     param(
         [string] $VaultName, 
         [string] $CertificateName, 
