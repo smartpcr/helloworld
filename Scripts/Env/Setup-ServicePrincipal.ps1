@@ -14,9 +14,9 @@ $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
-Import-Module "$scriptFolder\common.psm1" -Force
+Import-Module "$scriptFolder\..\modules\common.psm1" -Force
 
-$bootstrapValues = Get-EnvironmentSettings -envName $envName
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 
 # login and set subscription 
 $rmContext = Get-AzureRmContext
@@ -40,11 +40,15 @@ if (!$rg) {
 # create key vault 
 $kv = Get-AzureRmKeyVault -VaultName $vaultName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 if (!kv) {
+    Write-Host "Creating Key Vault $vaultName..."
     New-AzureRmKeyVault -Name $vaultName `
         -ResourceGroupName $rgName `
         -Sku Standard -EnabledForDeployment -EnabledForTemplateDeployment `
         -EnabledForDiskEncryption -EnableSoftDelete `
         -Location $bootstrapValues.global.location
+}
+else {
+    Write-Host "Key vault $($kv.VaultName) is already created"
 }
 
 # create service principal (SPN)
@@ -56,6 +60,9 @@ if (!$spn) {
     Write-Host "Creating service principal with name '$spnName'"
     $spn = Get-OrCreateServicePrincipal -servicePrincipalName $spnName -vaultName $vaultName
 }
+else {
+    Write-Host "Service principal with name '$($spn.DisplayName)' is already created"
+}
 
 Grant-ServicePrincipalPermissions `
     -servicePrincipalId $spn.Id `
@@ -64,4 +71,4 @@ Grant-ServicePrincipalPermissions `
     -vaultName $vaultName
 
 # connect as service principal 
-Connect-ToAzure -envName $envName
+Connect-ToAzure -EnvName $envName -ScriptFolder $scriptFolder

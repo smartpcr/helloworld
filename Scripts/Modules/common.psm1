@@ -1,3 +1,11 @@
+function Test-IsAdmin {
+    $wid = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $prp = new-object System.Security.Principal.WindowsPrincipal($wid)
+    $adm = [System.Security.Principal.WindowsBuiltInRole]::Administrator
+    $isAdmin = $prp.IsInRole($adm)
+    return $isAdmin
+}
+
 function Copy-YamlObject {
     param (
         [object] $fromObj,
@@ -195,27 +203,23 @@ function Get-OrCreatePasswordInVault {
 
 function Get-EnvironmentSettings {
     param(
-        [string] $envName = "dev"
+        [string] $EnvName = "dev",
+        [string] $ScriptFolder
     )
     
-    $scriptFolder = $PSScriptRoot
-    if (!$scriptFolder) {
-        $scriptFolder = Get-Location
-    }
-
     Install-Module powershell-yaml
     
 
-    $values = Get-Content "$scriptFolder\values.yaml" -Raw | ConvertFrom-Yaml
-    if ($envName) {
-        $envValueYamlFile = "$scriptFolder\$envName\values.yaml"
+    $values = Get-Content "$ScriptFolder\values.yaml" -Raw | ConvertFrom-Yaml
+    if ($EnvName) {
+        $envValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
         if (Test-Path $envValueYamlFile) {
             $envValues = Get-Content $envValueYamlFile -Raw | ConvertFrom-Yaml
             Copy-YamlObject -fromObj $envValues -toObj $values
         }
     }
 
-    $bootstrapTemplate = Get-Content "$scriptFolder\bootstrap.yaml" -Raw
+    $bootstrapTemplate = Get-Content "$ScriptFolder\bootstrap.yaml" -Raw
     $bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $values
     $bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml
 
@@ -261,21 +265,26 @@ function Get-OrCreateSelfSignedCertificateInVault {
 #>
 function Connect-ToAzure {
     param (
-        [string] $envName = "dev"
+        [string] $EnvName = "dev",
+        [string] $ScriptFolder
     )
     
-    $bootstrapValues = Get-EnvironmentSettings -envName $envName
+    $bootstrapValues = Get-EnvironmentSettings -envName $EnvName -ScriptFolder $ScriptFolder
     $spnName = $bootstrapValues.global.servicePrincipal
     $vaultName = $bootstrapValues.global.keyVault
 
     # cert must be also available from kv secret as json blob
     $certSecret = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $spnName 
-    $pfxBytes = [System.Convert]::FromBase64String($certSecret.SecretValueText)
+
+    $kvSecretBytes = [System.Convert]::FromBase64String($certSecret.SecretValueText)
+    $certDataJson = [System.Text.Encoding]::UTF8.GetString($kvSecretBytes) | ConvertFrom-Json
+    $pfxBytes = [System.Convert]::FromBase64String($certDataJson.data)
     $flags = [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet -bxor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet
     $pfx = new-object System.Security.Cryptography.X509Certificates.X509Certificate2
     $pfx.Import($pfxBytes, $null, $flags)
+    $thumbprint = $pfx.Thumbprint
 
-    $certAlreadyExists = Test-Path Cert:\CurrentUser\My\$($pfx.Thumbprint)
+    $certAlreadyExists = Test-Path Cert:\CurrentUser\My\$thumbprint
     if (!$certAlreadyExists) {
         $x509Store = new-object System.Security.Cryptography.X509Certificates.X509Store -ArgumentList My, CurrentUser
         $x509Store.Open('ReadWrite')
@@ -287,6 +296,40 @@ function Connect-ToAzure {
     Login-AzureRmAccount `
         -TenantId $bootstrapValues.global.tenantId `
         -ServicePrincipal `
-        -CertificateThumbprint $pfx.Thumbprint `
+        -CertificateThumbprint $thumbprint `
         -ApplicationId $spn.ApplicationId
+}
+
+function isNetCoreInstalled () {
+    try {
+        $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
+        $isInstalled = $false
+        if ($dotnetCmd) {
+            $isInstalled = Test-Path($dotnetCmd.Source)
+        }
+        return $isInstalled
+    }
+    catch {
+        return $false 
+    }
+}
+
+function isAzureCliInstalled() {
+    try {
+        $azCmd = Get-Command az -ErrorAction SilentlyContinue
+        if ($azCmd) {
+            return Test-Path $azCmd.Source 
+        }
+    }
+    catch {}
+    return $false 
+}
+
+function isChocoInstalled() {
+    try {
+        $chocoVersion = Invoke-Expression "choco -v" -ErrorAction SilentlyContinue
+        return ($chocoVersion -ne $null)
+    }
+    catch {}
+    return $false 
 }

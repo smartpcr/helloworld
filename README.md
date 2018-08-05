@@ -44,3 +44,10 @@ The product will be used by other software developers to:
 - route users to particular combination of features
 - service dependency is managed by tags, i.e. Service A (v1.0) can only talk to Service B (v1.4)
 - realtime dashboard of deployments, health and traffic
+
+# Instruction 
+
+## Bootstrap Environment
+
+1. Override settings in .\Setup\Env\dev\values.yaml
+2. Setup service principal authentication and devbox pre-requirements by running "__.\Setup\bootstrap.ps1__" in ___windows___ or "__./Setup/bootstrap.sh__" in ___mac___
