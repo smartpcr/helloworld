@@ -19,20 +19,16 @@ function Copy-YamlObject {
         if ($value) {
             $tgtName = $toObj.Keys | Where-Object { $_ -eq $name }
             if (!$tgtName) {
-                Write-Host "Adding $($name) to terget object"
                 $toObj.Add($name, $value)
             }
             else {
-                Write-Host "Overwrite prop: name=$($name), value=$($value)"
                 $tgtValue = $toObj.Item($tgtName)
                 if ($value -is [string] -or $value -is [int] -or $value -is [bool]) {
                     if ($value -ne $tgtValue) {
-                        Write-Host "Change value from $($tgtValue) to $($value)"
                         $toObj[$tgtName] = $value
                     }
                 }
                 else {
-                    Write-Host "Copy object $($name)"
                     Copy-YamlObject -fromObj $value -toObj $tgtValue
                 }
             }
@@ -54,7 +50,6 @@ function Set-Values {
         $found = $settings.Keys | Where-Object { $_ -eq $searchKey }
         if ($found) {
             $replaceValue = $settings.Item($found)
-            Write-Host "Replace $toBeReplaced with $replaceValue"
             $valueTemplate = ([string]$valueTemplate).Replace($toBeReplaced, $replaceValue)
             $match = $regex.Match($valueTemplate)
         }
@@ -114,36 +109,45 @@ function New-CertificateAsSecret {
 #>
 function Get-OrCreateServicePrincipal {
     param(
-        [string] $servicePrincipalName,
-        [string] $VaultName 
+        [string] $ServicePrincipalName,
+        [string] $VaultName,
+        [string] $ScriptFolder,
+        [string] $EnvName
     )
 
-    $sp = Get-AzureRmADServicePrincipal -SearchString $servicePrincipalName | Where-Object { $_.DisplayName -ieq $servicePrincipalName }
+    $sp = Get-AzureRmADServicePrincipal -SearchString $ServicePrincipalName | Where-Object { $_.DisplayName -ieq $ServicePrincipalName }
     if ($sp -and $sp -is [array] -and ([array]$sp).Count -ne 1) {
-        throw "There are more than one service principal with the same name: '$servicePrincipalName'"
+        throw "There are more than one service principal with the same name: '$ServicePrincipalName'"
     }
     if ($sp) {
         return $sp;
     }
 
-    $cert = New-CertificateAsSecret -certName $servicePrincipalName -vaultName $VaultName
+    $cert = New-CertificateAsSecret -certName $ServicePrincipalName -vaultName $VaultName
+    # write to values.yaml
+    $devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+    $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
+    $values.servicePrincipalCertThumbprint = $cert.Thumbprint
+    $values | ConvertTo-Yaml | Out-File $devValueYamlFile
 
     try {
         $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
     
         $sp = New-AzureRMADServicePrincipal `
-            -DisplayName $servicePrincipalName `
+            -DisplayName $ServicePrincipalName `
             -CertValue $certValueWithoutPrivateKey `
             -EndDate $cert.NotAfter `
             -StartDate $cert.NotBefore
+
+        $values.servicePrincipalAppId = $sp.ApplicationId
+        $values | ConvertTo-Yaml | Out-File $devValueYamlFile
       
         $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
-
-        Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$servicePrincipalName-cert" -CertificateString $completeCertData
+        Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$ServicePrincipalName-cert" -CertificateString $completeCertData
 
         Set-AzureKeyVaultSecret `
             -VaultName $VaultName `
-            -Name "$servicePrincipalName-appId" `
+            -Name "$ServicePrincipalName-appId" `
             -SecretValue ($sp.ApplicationId.ToString() | ConvertTo-SecureString -AsPlainText -Force)
 
         return $sp
@@ -274,11 +278,49 @@ function Connect-ToAzure {
         [string] $ScriptFolder
     )
     
-    $bootstrapValues = Get-EnvironmentSettings -envName $EnvName -ScriptFolder $ScriptFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+    $thumbprint = $bootstrapValues.global.servicePrincipalCertThumbprint
+    $spAppId = $bootstrapValues.global.servicePrincipalAppId
+
+    $needInstallCert = $false 
+    if ($null -eq $thumbprint) {
+        $needInstallCert = $true
+    }
+    else {
+        $certAlreadyExists = Test-Path Cert:\CurrentUser\My\$thumbprint
+        if (!$certAlreadyExists) {
+            $needInstallCert = $true 
+        }
+    }
+    if ($needInstallCert) {
+        InstallServicePrincipalCert -EnvName $EnvName -ScriptFolder $ScriptFolder
+    }
+
+    Login-AzureRmAccount `
+        -TenantId $bootstrapValues.global.tenantId `
+        -ServicePrincipal `
+        -CertificateThumbprint $thumbprint `
+        -ApplicationId $spAppId
+}
+
+function InstallServicePrincipalCert {
+    param (
+        [string] $EnvName = "dev",
+        [string] $ScriptFolder
+    )
+
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+
+    # ensure logged in 
+    $rmContext = Get-AzureRmContext
+    if (!$rmContext -or $rmContext.Subscription.Name -ne $bootstrapValues.global.subscriptionName) {
+        Login-AzureRmAccount
+        Set-AzureRmContext -Subscription $bootstrapValues.global.subscriptionName
+        $rmContext = Get-AzureRmContext
+    }
+    
     $spnName = $bootstrapValues.global.servicePrincipal
     $vaultName = $bootstrapValues.global.keyVault
-
-    # cert must be also available from kv secret as json blob
     $certSecret = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $spnName 
 
     $kvSecretBytes = [System.Convert]::FromBase64String($certSecret.SecretValueText)
@@ -295,19 +337,9 @@ function Connect-ToAzure {
         $x509Store.Open('ReadWrite')
         $x509Store.Add($pfx)
     }
-
-    $spAppId = (Get-AzureKeyVaultSecret -VaultName $vaultName -Name "$($spnName)-appId").SecretValueText
-
-    $spn = Get-AzureRmADServicePrincipal | Where-Object { $_.DisplayName -eq $spnName }
-
-    Login-AzureRmAccount `
-        -TenantId $bootstrapValues.global.tenantId `
-        -ServicePrincipal `
-        -CertificateThumbprint $thumbprint `
-        -ApplicationId $spAppId
 }
 
-function isNetCoreInstalled () {
+function Test-NetCoreInstalled () {
     try {
         $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
         $isInstalled = $false
@@ -321,7 +353,7 @@ function isNetCoreInstalled () {
     }
 }
 
-function isAzureCliInstalled() {
+function Test-AzureCliInstalled() {
     try {
         $azCmd = Get-Command az -ErrorAction SilentlyContinue
         if ($azCmd) {
@@ -332,7 +364,7 @@ function isAzureCliInstalled() {
     return $false 
 }
 
-function isChocoInstalled() {
+function Test-ChocoInstalled() {
     try {
         $chocoVersion = Invoke-Expression "choco -v" -ErrorAction SilentlyContinue
         return ($chocoVersion -ne $null)
@@ -341,10 +373,10 @@ function isChocoInstalled() {
     return $false 
 }
 
-function isDockerInstalled() {
+function Test-DockerInstalled() {
     try {
-        $chocoVersion = Invoke-Expression "docker --version" -ErrorAction SilentlyContinue
-        return ($chocoVersion -ne $null)
+        $dockerVer = Invoke-Expression "docker --version" -ErrorAction SilentlyContinue
+        return ($dockerVer -ne $null)
     }
     catch {}
     return $false 

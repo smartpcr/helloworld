@@ -4,6 +4,8 @@ global:
     location: {{ .Values.location }}
     dns: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}
     servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sp
+    servicePrincipalAppId: {{ .Values.servicePrincipalAppId }}
+    servicePrincipalCertThumbprint: {{ .Values.servicePrincipalCertThumbprint }}
     resourceGroup: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-rg
     keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-kv
     serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf

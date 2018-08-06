@@ -58,7 +58,7 @@ if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
 } 
 if (!$spn) {
     Write-Host "Creating service principal with name '$spnName'"
-    $spn = Get-OrCreateServicePrincipal -servicePrincipalName $spnName -vaultName $vaultName
+    $spn = Get-OrCreateServicePrincipal -ServicePrincipalName $spnName -VaultName $vaultName -ScriptFolder $scriptFolder
 }
 else {
     Write-Host "Service principal with name '$($spn.DisplayName)' is already created"
