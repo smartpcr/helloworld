@@ -8,6 +8,7 @@ global:
     keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-kv
     serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf
     kubernetes: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s
+    containerRegistry: {{ .Values.owner }}acr
 keyVault:
     certs:
         servicePrincipleCert: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp

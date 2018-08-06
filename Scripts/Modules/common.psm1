@@ -69,7 +69,7 @@ function Set-Values {
 function New-CertificateAsSecret {
     param(
         [string] $certName,
-        [string] $vaultName 
+        [string] $VaultName 
     )
 
     $cert = New-SelfSignedCertificate `
@@ -79,7 +79,7 @@ function New-CertificateAsSecret {
         -HashAlgorithm "SHA256" `
         -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider"
     $certPwdSecretName = "$certName-pwd"
-    $spCertPwdSecret = Get-OrCreatePasswordInVault -vaultName $vaultName -secretName $certPwdSecretName
+    $spCertPwdSecret = Get-OrCreatePasswordInVault -vaultName $VaultName -secretName $certPwdSecretName
     $pwd = $spCertPwdSecret.SecretValue
     $pfxFilePath = [System.IO.Path]::GetTempFileName()
     Export-PfxCertificate -cert $cert -FilePath $pfxFilePath -Password $pwd -ErrorAction Stop
@@ -93,7 +93,7 @@ function New-CertificateAsSecret {
     $ContentBytes = [System.Text.Encoding]::UTF8.GetBytes($JSONBlob)
     $Content = [System.Convert]::ToBase64String($ContentBytes)
     $SecretValue = ConvertTo-SecureString -String $Content -AsPlainText -Force
-    Set-AzureKeyVaultSecret -VaultName $vaultName -Name $certName -SecretValue $SecretValue -Verbose
+    Set-AzureKeyVaultSecret -VaultName $VaultName -Name $certName -SecretValue $SecretValue -Verbose
 
     Remove-Item $pfxFilePath
     Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
@@ -115,7 +115,7 @@ function New-CertificateAsSecret {
 function Get-OrCreateServicePrincipal {
     param(
         [string] $servicePrincipalName,
-        [string] $vaultName 
+        [string] $VaultName 
     )
 
     $sp = Get-AzureRmADServicePrincipal -SearchString $servicePrincipalName | Where-Object { $_.DisplayName -ieq $servicePrincipalName }
@@ -126,7 +126,7 @@ function Get-OrCreateServicePrincipal {
         return $sp;
     }
 
-    $cert = New-CertificateAsSecret -certName $servicePrincipalName -vaultName $vaultName
+    $cert = New-CertificateAsSecret -certName $servicePrincipalName -vaultName $VaultName
 
     try {
         $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
@@ -139,7 +139,12 @@ function Get-OrCreateServicePrincipal {
       
         $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
 
-        Import-AzureKeyVaultCertificate -VaultName $vaultName -Name "$servicePrincipalName-cert" -CertificateString $completeCertData
+        Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$servicePrincipalName-cert" -CertificateString $completeCertData
+
+        Set-AzureKeyVaultSecret `
+            -VaultName $VaultName `
+            -Name "$servicePrincipalName-appId" `
+            -SecretValue ($sp.ApplicationId.ToString() | ConvertTo-SecureString -AsPlainText -Force)
 
         return $sp
     }
@@ -153,7 +158,7 @@ function Grant-ServicePrincipalPermissions {
         [string] $servicePrincipalId,
         [string] $subscriptionId,
         [string] $resourceGroupName,
-        [string] $vaultName
+        [string] $VaultName
     )
 
     $roleAssignment = $null 
@@ -174,18 +179,18 @@ function Grant-ServicePrincipalPermissions {
     }
 
     if ($VaultName) {
-        Set-AzureRmKeyVaultAccessPolicy -VaultName $vaultName -ObjectId $servicePrincipalId -PermissionsToSecrets get, list, set, delete
-        Set-AzureRmKeyVaultAccessPolicy -VaultName $vaultName -ObjectId $servicePrincipalId -PermissionsToCertificates get, list, update, delete 
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $VaultName -ObjectId $servicePrincipalId -PermissionsToSecrets get, list, set, delete
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $VaultName -ObjectId $servicePrincipalId -PermissionsToCertificates get, list, update, delete 
     }
 }
 
 function Get-OrCreatePasswordInVault { 
     param(
-        [string] $vaultName, 
+        [string] $VaultName, 
         [string] $secretName
     )
 
-    $res = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $secretName -ErrorAction Ignore
+    $res = Get-AzureKeyVaultSecret -VaultName $VaultName -Name $secretName -ErrorAction Ignore
     if ($res) {
         return $res
     }
@@ -196,7 +201,7 @@ function Get-OrCreatePasswordInVault {
     $password = [System.Convert]::ToBase64String($bytes) + "!@1wW" #  ensure we meet password requirements
     $passwordSecureString = ConvertTo-SecureString -String $password -AsPlainText -Force
     return Set-AzureKeyVaultSecret `
-        -VaultName $vaultName `
+        -VaultName $VaultName `
         -Name $secretName `
         -SecretValue $passwordSecureString
 }
@@ -249,7 +254,7 @@ function Get-OrCreateSelfSignedCertificateInVault {
     
     Write-Verbose "Creating self-signed cert in KV"
     $policy = New-AzureKeyVaultCertificatePolicy -SubjectName $SubjectName -IssuerName Self -ValidityInMonths 12
-    Add-AzureKeyVaultCertificate -VaultName $vaultName -Name $certificateName -CertificatePolicy $policy | Out-Null
+    Add-AzureKeyVaultCertificate -VaultName $VaultName -Name $certificateName -CertificatePolicy $policy | Out-Null
     while ((Get-AzureKeyVaultCertificateOperation -VaultName $VaultName -Name $CertificateName).Status -ne 'completed') {
         Start-Sleep -Seconds 2
         Write-Verbose "Waiting on Key Vault operation"
@@ -291,13 +296,15 @@ function Connect-ToAzure {
         $x509Store.Add($pfx)
     }
 
+    $spAppId = (Get-AzureKeyVaultSecret -VaultName $vaultName -Name "$($spnName)-appId").SecretValueText
+
     $spn = Get-AzureRmADServicePrincipal | Where-Object { $_.DisplayName -eq $spnName }
 
     Login-AzureRmAccount `
         -TenantId $bootstrapValues.global.tenantId `
         -ServicePrincipal `
         -CertificateThumbprint $thumbprint `
-        -ApplicationId $spn.ApplicationId
+        -ApplicationId $spAppId
 }
 
 function isNetCoreInstalled () {
@@ -328,6 +335,15 @@ function isAzureCliInstalled() {
 function isChocoInstalled() {
     try {
         $chocoVersion = Invoke-Expression "choco -v" -ErrorAction SilentlyContinue
+        return ($chocoVersion -ne $null)
+    }
+    catch {}
+    return $false 
+}
+
+function isDockerInstalled() {
+    try {
+        $chocoVersion = Invoke-Expression "docker --version" -ErrorAction SilentlyContinue
         return ($chocoVersion -ne $null)
     }
     catch {}

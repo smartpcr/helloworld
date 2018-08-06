@@ -47,6 +47,16 @@ else {
     Write-Host "az cli is already installed"
 }
 
+if (-not (isDockerInstalled)) {
+    Write-Host "Installing docker ce for windows.."
+    $dockerForWindow = "https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe"
+    $tempFile = "C:\users\$env:username\downloads\Docker for Windows Installer.exe"
+    $webClient = New-Object System.Net.WebClient
+    $webClient.DownloadFile($dockerForWindow, $tempFile)
+    Start-Process $tempFile -Wait 
+    Remove-Item $tempFile -Force 
+}
+
 # kubectl must be installed before minikube
 Write-Host "Installing kubectl..."
 choco install kubernetes-cli -y
