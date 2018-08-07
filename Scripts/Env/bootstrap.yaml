@@ -2,24 +2,38 @@ global:
     subscriptionName: {{ .Values.subscriptionName }}
     tenantId: {{ .Values.tenantId }}
     location: {{ .Values.location }}
-    dns: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}
     servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sp
     servicePrincipalAppId: {{ .Values.servicePrincipalAppId }}
     servicePrincipalCertThumbprint: {{ .Values.servicePrincipalCertThumbprint }}
     resourceGroup: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-rg
-    keyVault: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-kv
-    serviceFabric: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf
-    kubernetes: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s
-    containerRegistry: {{ .Values.owner }}acr
-keyVault:
+    aks: true
+    sf: false
+kv:
+    name: {{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-kv
     certs:
-        servicePrincipleCert: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp
-        apiSslCert: 
-        sfClusterMgrCert:
-sfCluster:
+        - servicePrincipleCert: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp
+        - apiSslCert: 
+acr:
+    name: {{ .Values.owner }}acr
+    passwordSecretName: acr-{{ .Values.owner }}acr-password
+sf:
+    serviceFabricClusterName: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf
+    managementCert:
     nodeTypes:
-        - frontend
-        - backend
-        - management
-aksCluster:
+        - frontend:
+            nodeCount: 3
+            vmSize: Standard_DS1
+        - backend:
+            nodeCount: 2
+            vmSize: Standard_DS4
+        - management:
+            nodeCount: 1
+            vmSize: Standard_DS4
+aks:
+    clusterName: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s
+    dnsPrefix: {{ .Values.aksDnsPrefix }}
+    servicePrincipal: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp
+    servicePrincipalAppId: {{ .Values.aksServicePrincipalAppId }}
+    servicePrincipalPassword: {{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp-pwd
     nodeCount: 3
+    vmSize: Standard_DS1_v2

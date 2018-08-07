@@ -8,7 +8,7 @@
         a) key vault
         b) resource group
 #>
-param([string] $envName = "dev")
+param([string] $EnvName = "dev")
 
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
@@ -16,18 +16,13 @@ if (!$scriptFolder) {
 }
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
 
 # login and set subscription 
-$rmContext = Get-AzureRmContext
-if (!$rmContext -or $rmContext.Subscription.Name -ne $bootstrapValues.global.subscriptionName) {
-    Login-AzureRmAccount
-    Set-AzureRmContext -Subscription $bootstrapValues.global.subscriptionName
-    $rmContext = Get-AzureRmContext
-}
+LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
 
 $spnName = $bootstrapValues.global.servicePrincipal
-$vaultName = $bootstrapValues.global.keyVault
+$vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
 
 # create resource group 
@@ -51,14 +46,14 @@ else {
     Write-Host "Key vault $($kv.VaultName) is already created"
 }
 
-# create service principal (SPN)
+# create service principal (SPN) for cluster provision
 $spn = Get-AzureRmADServicePrincipal | Where-Object { $_.DisplayName -eq $spnName }
 if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
     throw "There are more than one service principal with the same name '$spnName'"
 } 
 if (!$spn) {
     Write-Host "Creating service principal with name '$spnName'"
-    $spn = Get-OrCreateServicePrincipal -ServicePrincipalName $spnName -VaultName $vaultName -ScriptFolder $scriptFolder
+    $spn = Get-OrCreateServicePrincipalUsingCert -ServicePrincipalName $spnName -VaultName $vaultName -ScriptFolder $scriptFolder -EnvName $EnvName 
 }
 else {
     Write-Host "Service principal with name '$($spn.DisplayName)' is already created"
@@ -70,5 +65,25 @@ Grant-ServicePrincipalPermissions `
     -resourceGroupName $rgName `
     -vaultName $vaultName
 
+if ($bootstrapValues.global.aks -eq $true) {
+    $aksSpnName = $bootstrapValues.aks.servicePrincipal
+    $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
+    $aksSpn = Get-OrCreateServicePrincipalUsingPassword -ServicePrincipalName $aksSpnName -ServicePrincipalPwdSecretName $askSpnPwdSecretName -VaultName $vaultName -ScriptFolder $scriptFolder -EnvName $EnvName
+    
+    # write to values.yaml
+    $devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+    $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
+    $values.aksServicePrincipalAppId = $aksSpn.ApplicationId
+    $values | ConvertTo-Yaml | Out-File $devValueYamlFile
+
+
+    Grant-ServicePrincipalPermissions `
+        -servicePrincipalId $aksSpn.Id `
+        -subscriptionId $rmContext.Subscription.Id `
+        -resourceGroupName $rgName `
+        -vaultName $vaultName
+}
+
+
 # connect as service principal 
-Connect-ToAzure -EnvName $envName -ScriptFolder $scriptFolder
+Connect-ToAzure -EnvName $EnvName -ScriptFolder $scriptFolder

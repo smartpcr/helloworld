@@ -17,38 +17,30 @@ if (!$scriptFolder) {
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 $rgName = $bootstrapValues.global.resourceGroup
-$acrName = $bootstrapValues.global.containerRegistry
+$aksClusterName = $bootstrapValues.aks.clusterName
+$dnsPrefix = $bootstrapValues.aks.dnsPrefix
+$nodeCount = $bootstrapValues.aks.nodeCount
+$vmSize = $bootstrapValues.aks.vmSize
+
+$aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
+$aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
+$aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
 
 # login to azure 
 Connect-ToAzure -EnvName $EnvName -ScriptFolder $scriptFolder
 
-# create resource group
-# az group create --name $bootstrapValues.global.resourceGroup --location $bootstrapValues.global.location
 
-# use ACR
-$acrFound = "$(az acr list -g $rgName --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
-if (!$acrFound) {
-    Write-Host "Creating container registry $acrName..."
-    az acr create -g $rgName -n $acrName --sku Basic
-}
-
-az acr login -n $acrName
-az acr list -o table
-az acr update -n xdcontainerregistry --admin-enabled true 
-az acr repository list -n xdContainerRegistry -o table  
-
-# get ACR username/password
-acrUsername="xdcontainerregistry"
-acrPassword="$(az acr credential show -n $acrName --query ""passwords[0].value"")"
 
 # this took >30 min!! Go grab a coffee.
 az aks create `
-    --resource-group xdK8S `
-    --name xdK8SCluster `
+    --resource-group $rgName `
+    --name $aksClusterName `
     --generate-ssh-keys `
-    --dns-name-prefix xdli `
-    --node-count 3 `
-    --node-vm-size Standard_DS1
+    --dns-name-prefix $dnsPrefix `
+    --node-count $nodeCount `
+    --node-vm-size $vmSize `
+    --service-principal $aksSpnAppId `
+    --client-secret $aksSpnPwd
 
 az aks list -o table
 

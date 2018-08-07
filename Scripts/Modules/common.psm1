@@ -107,7 +107,7 @@ function New-CertificateAsSecret {
     dev box or build agent.
     3) Service principal is created by specifying name and cert credential
 #>
-function Get-OrCreateServicePrincipal {
+function Get-OrCreateServicePrincipalUsingCert {
     param(
         [string] $ServicePrincipalName,
         [string] $VaultName,
@@ -129,32 +129,63 @@ function Get-OrCreateServicePrincipal {
     $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
     $values.servicePrincipalCertThumbprint = $cert.Thumbprint
     $values | ConvertTo-Yaml | Out-File $devValueYamlFile
-
+    
     try {
         $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
-    
+        
         $sp = New-AzureRMADServicePrincipal `
             -DisplayName $ServicePrincipalName `
             -CertValue $certValueWithoutPrivateKey `
             -EndDate $cert.NotAfter `
             -StartDate $cert.NotBefore
-
+    
         $values.servicePrincipalAppId = $sp.ApplicationId
         $values | ConvertTo-Yaml | Out-File $devValueYamlFile
-      
+          
         $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
         Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$ServicePrincipalName-cert" -CertificateString $completeCertData
-
+    
         Set-AzureKeyVaultSecret `
             -VaultName $VaultName `
             -Name "$ServicePrincipalName-appId" `
             -SecretValue ($sp.ApplicationId.ToString() | ConvertTo-SecureString -AsPlainText -Force)
-
+    
         return $sp
     }
     finally {
         Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
     }
+    
+}
+
+function Get-OrCreateServicePrincipalUsingPassword {
+    param(
+        [string] $ServicePrincipalName,
+        [string] $ServicePrincipalPwdSecretName,
+        [string] $VaultName,
+        [string] $ScriptFolder,
+        [string] $EnvName
+    )
+
+    $sp = Get-AzureRmADServicePrincipal -SearchString $ServicePrincipalName | Where-Object { $_.DisplayName -ieq $ServicePrincipalName }
+    if ($sp -and $sp -is [array] -and ([array]$sp).Count -ne 1) {
+        throw "There are more than one service principal with the same name: '$ServicePrincipalName'"
+    }
+    if ($sp) {
+        return $sp;
+    }
+
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+
+    $rmContext = LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
+    $rgName = $bootstrapValues.global.resourceGroup
+    $scopes = "/subscriptions/$($rmContext.Subscription.Id)/resourceGroups/$($rgName)"
+    
+    $servicePrincipalPwd = Get-OrCreatePasswordInVault -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
+    $sp = "$(az ad sp create-for-rbac --name $ServicePrincipalName --password $($servicePrincipalPwd.SecretValueText) --role=""Contributor"" --scopes=""$scopes"")"
+    
+    $sp = Get-AzureRmADServicePrincipal -SearchString $ServicePrincipalName | Where-Object { $_.DisplayName -ieq $ServicePrincipalName }
+    return $sp 
 }
 
 function Grant-ServicePrincipalPermissions {
@@ -312,15 +343,10 @@ function InstallServicePrincipalCert {
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
 
     # ensure logged in 
-    $rmContext = Get-AzureRmContext
-    if (!$rmContext -or $rmContext.Subscription.Name -ne $bootstrapValues.global.subscriptionName) {
-        Login-AzureRmAccount
-        Set-AzureRmContext -Subscription $bootstrapValues.global.subscriptionName
-        $rmContext = Get-AzureRmContext
-    }
+    LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
     
     $spnName = $bootstrapValues.global.servicePrincipal
-    $vaultName = $bootstrapValues.global.keyVault
+    $vaultName = $bootstrapValues.kv.name
     $certSecret = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $spnName 
 
     $kvSecretBytes = [System.Convert]::FromBase64String($certSecret.SecretValueText)
@@ -379,5 +405,34 @@ function Test-DockerInstalled() {
         return ($dockerVer -ne $null)
     }
     catch {}
+    return $false 
+}
+
+function LoginAzureAsUser {
+    param (
+        [string] $SubscriptionName
+    )
+    
+    $rmContext = Get-AzureRmContext
+    if (!$rmContext -or $rmContext.Subscription.Name -ne $SubscriptionName) {
+        Login-AzureRmAccount
+        Set-AzureRmContext -Subscription $SubscriptionName
+        $rmContext = Get-AzureRmContext
+    }
+
+    return $rmContext
+}
+
+<# there is bug filtering and test vm offering, manually set vmSize for different region #>
+function Test-VMSize {
+    param(
+        [string] $VMSize,
+        [string] $Location
+    )
+
+    $vmSizeFound = "$(az vm list-sizes -l $Location --query ""[?name=='$VMSize']"")"
+    if ($vmSizeFound) {
+        return $true 
+    }
     return $false 
 }
