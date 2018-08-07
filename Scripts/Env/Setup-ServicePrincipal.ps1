@@ -74,7 +74,7 @@ if ($bootstrapValues.global.aks -eq $true) {
     $devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
     $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
     $values.aksServicePrincipalAppId = $aksSpn.ApplicationId
-    $values | ConvertTo-Yaml | Out-File $devValueYamlFile
+    $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 
     Grant-ServicePrincipalPermissions `

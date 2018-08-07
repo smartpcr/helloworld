@@ -128,7 +128,7 @@ function Get-OrCreateServicePrincipalUsingCert {
     $devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
     $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
     $values.servicePrincipalCertThumbprint = $cert.Thumbprint
-    $values | ConvertTo-Yaml | Out-File $devValueYamlFile
+    $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
     
     try {
         $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
@@ -140,7 +140,7 @@ function Get-OrCreateServicePrincipalUsingCert {
             -StartDate $cert.NotBefore
     
         $values.servicePrincipalAppId = $sp.ApplicationId
-        $values | ConvertTo-Yaml | Out-File $devValueYamlFile
+        $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
           
         $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
         Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$ServicePrincipalName-cert" -CertificateString $completeCertData

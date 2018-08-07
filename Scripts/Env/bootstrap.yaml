@@ -36,4 +36,4 @@ aks:
     servicePrincipalAppId: {{ .Values.aksServicePrincipalAppId }}
     servicePrincipalPassword: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp-pwd"
     nodeCount: 3
-    vmSize: Standard_DS1_v2
+    vmSize: Standard_D1_v2

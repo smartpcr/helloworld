@@ -17,19 +17,18 @@ if (!$scriptFolder) {
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 $rgName = $bootstrapValues.global.resourceGroup
+$vaultName = $bootstrapValues.kv.name
 $aksClusterName = $bootstrapValues.aks.clusterName
 $dnsPrefix = $bootstrapValues.aks.dnsPrefix
 $nodeCount = $bootstrapValues.aks.nodeCount
 $vmSize = $bootstrapValues.aks.vmSize
-
 $aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
-$aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
 
 # login to azure 
 Connect-ToAzure -EnvName $EnvName -ScriptFolder $scriptFolder
 
-
+$aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
 
 # this took >30 min!! Go grab a coffee.
 az aks create `
