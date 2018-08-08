@@ -37,11 +37,12 @@ if (!$rg) {
 $kv = Get-AzureRmKeyVault -VaultName $vaultName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 if (!$kv) {
     Write-Host "Creating Key Vault $vaultName..."
+    
     New-AzureRmKeyVault -Name $vaultName `
         -ResourceGroupName $rgName `
         -Sku Standard -EnabledForDeployment -EnabledForTemplateDeployment `
         -EnabledForDiskEncryption -EnableSoftDelete `
-        -Location $bootstrapValues.global.location
+        -Location $bootstrapValues.global.location | Out-Null
 }
 else {
     Write-Host "Key vault $($kv.VaultName) is already created"

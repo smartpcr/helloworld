@@ -14,8 +14,8 @@ kv:
         - servicePrincipleCert: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp"
         - apiSslCert: 
 acr:
-    name: "{{ .Values.owner }}acr"
-    passwordSecretName: "acr-{{ .Values.owner }}acr-password"
+    name: "{{ .Values.owner }}acr{{ .Values.envName }}"
+    passwordSecretName: "acr-{{ .Values.owner }}acr-{{ .Values.envName }}-pwd"
 sf:
     serviceFabricClusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf"
     managementCert:

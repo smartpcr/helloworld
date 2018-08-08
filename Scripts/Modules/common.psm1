@@ -360,8 +360,8 @@ function LoginAzureAsUser {
     
     $rmContext = Get-AzureRmContext
     if (!$rmContext -or $rmContext.Subscription.Name -ne $SubscriptionName) {
-        az login
-        az account set --subscription $SubscriptionName
+        Login-AzureRmAccount
+        Set-AzureRmContext -Subscription $SubscriptionName
         $rmContext = Get-AzureRmContext
     }
 

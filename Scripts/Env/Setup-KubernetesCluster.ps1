@@ -15,6 +15,8 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
+Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
+
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 $rgName = $bootstrapValues.global.resourceGroup
 $vaultName = $bootstrapValues.kv.name

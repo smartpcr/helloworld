@@ -1,6 +1,7 @@
-﻿envName: dev1
-servicePrincipalCertThumbprint: 54C9415BB337F85E42C4721F592EF444105C4439
+﻿envName: dev2
+servicePrincipalCertThumbprint: E009473B18174B2A3410C8904D46EB15B7260146
 aksDnsPrefix: hw-aks-xd
 owner: xiaodoli
-servicePrincipalAppId: 1bc84f29-9815-47fe-80aa-eae4bdc0adf2
-aksServicePrincipalAppId: 5292e890-d7dc-449f-a087-02ed95bb170a
+servicePrincipalAppId: 025c24f6-be6d-427a-82c6-b1f8a3b930d4
+aksServicePrincipalAppId: c2091f86-8923-46ff-8473-03d5c94e6356
+

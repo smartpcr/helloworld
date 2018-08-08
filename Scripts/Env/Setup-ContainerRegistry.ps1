@@ -5,6 +5,8 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
+Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
+
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 $rgName = $bootstrapValues.global.resourceGroup
 $acrName = $bootstrapValues.acr.name
@@ -13,9 +15,6 @@ $acrPwdSecretName = $bootstrapValues.acr.passwordSecretName
 
 # login to azure 
 Connect-ToAzure -EnvName $EnvName -ScriptFolder $scriptFolder
-
-# create resource group
-# az group create --name $bootstrapValues.global.resourceGroup --location $bootstrapValues.global.location
 
 # use ACR
 $acrFound = "$(az acr list -g $rgName --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
