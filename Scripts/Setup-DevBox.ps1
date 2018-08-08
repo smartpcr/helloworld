@@ -56,6 +56,9 @@ if (-not (Test-DockerInstalled)) {
     Start-Process $tempFile -Wait 
     Remove-Item $tempFile -Force 
 }
+else {
+    Write-Host "Docker is already installed"
+}
 
 # kubectl must be installed before minikube
 Write-Host "Installing kubectl..."

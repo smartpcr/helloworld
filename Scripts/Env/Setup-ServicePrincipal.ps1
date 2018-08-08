@@ -15,6 +15,7 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
+Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
 
@@ -34,7 +35,7 @@ if (!$rg) {
 
 # create key vault 
 $kv = Get-AzureRmKeyVault -VaultName $vaultName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
-if (!kv) {
+if (!$kv) {
     Write-Host "Creating Key Vault $vaultName..."
     New-AzureRmKeyVault -Name $vaultName `
         -ResourceGroupName $rgName `
@@ -47,17 +48,7 @@ else {
 }
 
 # create service principal (SPN) for cluster provision
-$spn = Get-AzureRmADServicePrincipal | Where-Object { $_.DisplayName -eq $spnName }
-if ($spn -and $spn -is [array] -and ([array]$spn).Count -ne 1) {
-    throw "There are more than one service principal with the same name '$spnName'"
-} 
-if (!$spn) {
-    Write-Host "Creating service principal with name '$spnName'"
-    $spn = Get-OrCreateServicePrincipalUsingCert -ServicePrincipalName $spnName -VaultName $vaultName -ScriptFolder $scriptFolder -EnvName $EnvName 
-}
-else {
-    Write-Host "Service principal with name '$($spn.DisplayName)' is already created"
-}
+$spn = Get-OrCreateServicePrincipalUsingCert -ServicePrincipalName $spnName -VaultName $vaultName -ScriptFolder $scriptFolder -EnvName $EnvName 
 
 Grant-ServicePrincipalPermissions `
     -servicePrincipalId $spn.Id `

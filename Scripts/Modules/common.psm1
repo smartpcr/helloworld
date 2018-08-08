@@ -61,41 +61,6 @@ function Set-Values {
     return $valueTemplate
 }
 
-function New-CertificateAsSecret {
-    param(
-        [string] $certName,
-        [string] $VaultName 
-    )
-
-    $cert = New-SelfSignedCertificate `
-        -CertStoreLocation "cert:\CurrentUser\My" `
-        -Subject "CN=$certName" `
-        -KeySpec KeyExchange `
-        -HashAlgorithm "SHA256" `
-        -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider"
-    $certPwdSecretName = "$certName-pwd"
-    $spCertPwdSecret = Get-OrCreatePasswordInVault -vaultName $VaultName -secretName $certPwdSecretName
-    $pwd = $spCertPwdSecret.SecretValue
-    $pfxFilePath = [System.IO.Path]::GetTempFileName()
-    Export-PfxCertificate -cert $cert -FilePath $pfxFilePath -Password $pwd -ErrorAction Stop
-    $Bytes = [System.IO.File]::ReadAllBytes($pfxFilePath)
-    $Base64 = [System.Convert]::ToBase64String($Bytes)
-    $JSONBlob = @{
-        data     = $Base64
-        dataType = 'pfx'
-        password = $Password
-    } | ConvertTo-Json
-    $ContentBytes = [System.Text.Encoding]::UTF8.GetBytes($JSONBlob)
-    $Content = [System.Convert]::ToBase64String($ContentBytes)
-    $SecretValue = ConvertTo-SecureString -String $Content -AsPlainText -Force
-    Set-AzureKeyVaultSecret -VaultName $VaultName -Name $certName -SecretValue $SecretValue -Verbose
-
-    Remove-Item $pfxFilePath
-    Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
-
-    return $cert
-}
-
 <#
     It assumes service principal has unique display name in current directory
     When service principal is already created, return it directly
@@ -130,31 +95,26 @@ function Get-OrCreateServicePrincipalUsingCert {
     $values.servicePrincipalCertThumbprint = $cert.Thumbprint
     $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
     
-    try {
-        $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
+    $certValueWithoutPrivateKey = [System.Convert]::ToBase64String($cert.GetRawCertData())
         
-        $sp = New-AzureRMADServicePrincipal `
-            -DisplayName $ServicePrincipalName `
-            -CertValue $certValueWithoutPrivateKey `
-            -EndDate $cert.NotAfter `
-            -StartDate $cert.NotBefore
-    
-        $values.servicePrincipalAppId = $sp.ApplicationId
-        $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
-          
-        $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
-        Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$ServicePrincipalName-cert" -CertificateString $completeCertData
-    
-        Set-AzureKeyVaultSecret `
-            -VaultName $VaultName `
-            -Name "$ServicePrincipalName-appId" `
-            -SecretValue ($sp.ApplicationId.ToString() | ConvertTo-SecureString -AsPlainText -Force)
-    
-        return $sp
-    }
-    finally {
-        Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
-    }
+    $sp = New-AzureRMADServicePrincipal `
+        -DisplayName $ServicePrincipalName `
+        -CertValue $certValueWithoutPrivateKey `
+        -EndDate $cert.NotAfter `
+        -StartDate $cert.NotBefore
+
+    $values.servicePrincipalAppId = $sp.ApplicationId
+    $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
+      
+    $completeCertData = [System.Convert]::ToBase64String($cert.Export("Pkcs12"))
+    Import-AzureKeyVaultCertificate -VaultName $VaultName -Name "$ServicePrincipalName-cert" -CertificateString $completeCertData | Out-Null
+
+    Set-AzureKeyVaultSecret `
+        -VaultName $VaultName `
+        -Name "$ServicePrincipalName-appId" `
+        -SecretValue ($sp.ApplicationId.ToString() | ConvertTo-SecureString -AsPlainText -Force) | Out-Null
+
+    return $sp
     
 }
 
@@ -341,28 +301,13 @@ function InstallServicePrincipalCert {
     )
 
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+    $spnName = $bootstrapValues.global.servicePrincipal
+    $vaultName = $bootstrapValues.kv.name
 
     # ensure logged in 
     LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
-    
-    $spnName = $bootstrapValues.global.servicePrincipal
-    $vaultName = $bootstrapValues.kv.name
-    $certSecret = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $spnName 
 
-    $kvSecretBytes = [System.Convert]::FromBase64String($certSecret.SecretValueText)
-    $certDataJson = [System.Text.Encoding]::UTF8.GetString($kvSecretBytes) | ConvertFrom-Json
-    $pfxBytes = [System.Convert]::FromBase64String($certDataJson.data)
-    $flags = [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet -bxor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet
-    $pfx = new-object System.Security.Cryptography.X509Certificates.X509Certificate2
-    $pfx.Import($pfxBytes, $null, $flags)
-    $thumbprint = $pfx.Thumbprint
-
-    $certAlreadyExists = Test-Path Cert:\CurrentUser\My\$thumbprint
-    if (!$certAlreadyExists) {
-        $x509Store = new-object System.Security.Cryptography.X509Certificates.X509Store -ArgumentList My, CurrentUser
-        $x509Store.Open('ReadWrite')
-        $x509Store.Add($pfx)
-    }
+    Install-CertFromVaultSecret -VaultName $vaultName -CertSecretName $spnName 
 }
 
 function Test-NetCoreInstalled () {
@@ -415,8 +360,8 @@ function LoginAzureAsUser {
     
     $rmContext = Get-AzureRmContext
     if (!$rmContext -or $rmContext.Subscription.Name -ne $SubscriptionName) {
-        Login-AzureRmAccount
-        Set-AzureRmContext -Subscription $SubscriptionName
+        az login
+        az account set --subscription $SubscriptionName
         $rmContext = Get-AzureRmContext
     }
 

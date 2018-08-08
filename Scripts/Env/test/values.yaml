@@ -1,7 +1,8 @@
-envName: dev
+envName: test
 servicePrincipalCertThumbprint: D601F820788856798555A2AF2E6A1CFF2ADA1A85
 owner: xiaodoli
 servicePrincipalAppId: 8e404ae2-d798-48bf-ba63-a9d1a6630470
 aksServicePrincipalAppId: 5993dc02-2d23-4c50-9dcd-d8af010fcbab
 aksDnsPrefix: hw-aks-xd
 subscriptionName: "BizSpark-xdxli"
+tenantId: 19ebd8a8-ee3e-477c-a9f9-54c8266c2bda
