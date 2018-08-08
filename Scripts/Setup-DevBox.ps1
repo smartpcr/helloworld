@@ -1,3 +1,14 @@
+<#
+    This script setup devbox on windows
+    1) install chocolate
+    2) install .net core sdk 2.1
+    3) install azure cli 
+    4) install docker and enable hyper-v feature
+    5) install kubectl (kubernetes cli)
+    6) install helm and draft
+    7) minikube on windows is not working (via kubeadmin)
+#>
+
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location
