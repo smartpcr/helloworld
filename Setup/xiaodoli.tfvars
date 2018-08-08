@@ -1,5 +1,4 @@
-service_principal_id="this will be passed in from command line arguments"
-service_principal_password="this will be passed in from command line arguments"
+
 ssh_public_key="~/.ssh/hw-001-dev-wus2-sp.pub"
 resource_group_name="hw-001-dev-wus2-rg"
 aks_resource_group_name="hw-001-dev-wus2-rg-aks"

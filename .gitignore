@@ -2,3 +2,6 @@
 .pem
 .pfx
 .cer 
+.terraform/
+.secrets
+**/*.secrets

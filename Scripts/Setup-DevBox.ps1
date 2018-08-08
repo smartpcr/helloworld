@@ -78,3 +78,8 @@ choco install kubernetes-cli -y
 # install heml
 Write-Host "Installing helm..."
 choco install kubernetes-helm -y
+
+# install terraform 
+Write-Host "Install terraform..."
+choco install terraform -y 
+
