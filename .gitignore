@@ -6,3 +6,6 @@
 .secrets
 **/*.secrets
 **/*.out
+**/*.tfstate
+**/*.tfstate.backup
+credential/

@@ -1,3 +1,5 @@
+
+
 variable "location" {
   type = "string"
   default = "west us 2"

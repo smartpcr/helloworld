@@ -1,7 +1,8 @@
-﻿envName: dev2
-servicePrincipalCertThumbprint: E009473B18174B2A3410C8904D46EB15B7260146
+﻿envName: dev3
+servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
 aksDnsPrefix: hw-aks-xd
 owner: xiaodoli
-servicePrincipalAppId: 025c24f6-be6d-427a-82c6-b1f8a3b930d4
-aksServicePrincipalAppId: c2091f86-8923-46ff-8473-03d5c94e6356
+aksServicePrincipalAppId: dbb82f99-86d8-4f81-ae4d-029e83fff2de
+servicePrincipalAppId: ff820867-4de8-4f98-9c39-6d339c30927d
 email: xiaodoli@microsoft.com
+
