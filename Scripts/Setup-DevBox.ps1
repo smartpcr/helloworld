@@ -3,7 +3,8 @@
     1) install chocolate
     2) install .net core sdk 2.1
     3) install azure cli 
-    4) install docker and enable hyper-v feature
+    4) install docker and REMOVE hyper-v feature, make sure to check "Expose daemon on tcp://localhost:2375 without TLS"
+    5) install windows subsystem for linux (WSL)
     5) install kubectl (kubernetes cli)
     6) install helm and draft
     7) minikube on windows is not working (via kubeadmin)
@@ -58,6 +59,7 @@ else {
     Write-Host "az cli is already installed"
 }
 
+
 if (-not (Test-DockerInstalled)) {
     Write-Host "Installing docker ce for windows.."
     $dockerForWindow = "https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe"
@@ -70,6 +72,12 @@ if (-not (Test-DockerInstalled)) {
 else {
     Write-Host "Docker is already installed"
 }
+
+# instead of using hyper-v, use windows-linux-subsystem
+Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
+
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-1604 -OutFile Ubuntu.appx -UseBasicParsing
 
 # kubectl must be installed before minikube
 Write-Host "Installing kubectl..."
