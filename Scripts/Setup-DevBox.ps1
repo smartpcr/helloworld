@@ -3,11 +3,20 @@
     1) install chocolate
     2) install .net core sdk 2.1
     3) install azure cli 
-    4) install docker and REMOVE hyper-v feature, make sure to check "Expose daemon on tcp://localhost:2375 without TLS"
-    5) install windows subsystem for linux (WSL)
-    5) install kubectl (kubernetes cli)
-    6) install helm and draft
-    7) minikube on windows is not working (via kubeadmin)
+    4) install docker (make sure to check "Expose daemon on tcp://localhost:2375 without TLS")
+    6) install windows subsystem for linux (WSL)
+    7) install kubectl (kubernetes cli)
+    8) install helm and draft
+    9) install minikube
+
+    there are two options to setup minikube, one is via hyper-v, the other is via virtualbox
+    9a) disable hyper-v feature
+    10a) install virtualbox
+    11a) start minikube
+
+    9b) enable hyper-v feature
+    10b) fix hyper-v network
+    11a) start minikube
 #>
 
 $scriptFolder = $PSScriptRoot
@@ -58,7 +67,6 @@ if (-not (Test-AzureCliInstalled)) {
 else {
     Write-Host "az cli is already installed"
 }
-
 
 if (-not (Test-DockerInstalled)) {
     Write-Host "Installing docker ce for windows.."

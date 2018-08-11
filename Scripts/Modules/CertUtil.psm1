@@ -34,6 +34,40 @@ function New-CertificateAsSecret {
     return $cert
 }
 
+function New-CertificateAsSecret2 {
+    param(
+        [string] $CertName,
+        [string] $VaultName 
+    )
+
+    $cert = New-SelfSignedCertificate `
+        -CertStoreLocation "cert:\CurrentUser\My" `
+        -Subject "CN=$CertName" `
+        -KeySpec KeyExchange `
+        -HashAlgorithm "SHA256" `
+        -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider"
+    $certPwdSecretName = "$CertName-pwd"
+    $spCertPwdSecret = Get-OrCreatePasswordInVault2 -vaultName $VaultName -secretName $certPwdSecretName
+    $pwd = $spCertPwdSecret.value
+    $pfxFilePath = [System.IO.Path]::GetTempFileName() 
+    Export-PfxCertificate -cert $cert -FilePath $pfxFilePath -Password $pwd -ErrorAction Stop | Out-Null
+    $Bytes = [System.IO.File]::ReadAllBytes($pfxFilePath)
+    $Base64 = [System.Convert]::ToBase64String($Bytes)
+    $JSONBlob = @{
+        data     = $Base64
+        dataType = 'pfx'
+        password = ($pwd | ConvertTo-SecureString -AsPlainText -Force)
+    } | ConvertTo-Json
+    $ContentBytes = [System.Text.Encoding]::UTF8.GetBytes($JSONBlob)
+    $Content = [System.Convert]::ToBase64String($ContentBytes)
+    $SecretValue = ConvertTo-SecureString -String $Content -AsPlainText -Force
+    Set-AzureKeyVaultSecret -VaultName $VaultName -Name $CertName -SecretValue $SecretValue | Out-Null
+
+    Remove-Item $pfxFilePath
+    Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
+
+    return $cert
+}
 
 function Install-CertFromVaultSecret {
     param(

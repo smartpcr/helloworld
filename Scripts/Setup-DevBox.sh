@@ -101,3 +101,12 @@ helm install stable/wordpress
 
 echo "installing terraform..."
 brew install terraform
+
+echo "Installing jq..."
+brew install jq
+
+echo "Installing powershell"
+brew cask install powershell
+
+echo "Installing python modules..."
+sudo pip install pyyaml

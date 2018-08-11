@@ -1,13 +1,32 @@
 # Environment Setup for Microservice Development Using AKS
 
-I will setup 2 VMs for individual dev environment, one is Windows 10, which is main development environment using Visual Studio 2017. The other is Ubuntu 18.04 LTS for docker/minikube setup, this is to test dot net core deployment to docker image and kubernetes cluster.
+For each developer, two environments are needed:
 
-## Windows 10 Desktop
+1. Windows 10 is used for daily development. 
+2. Ubuntu is used for testing. 
 
-- install docker with hyper-v
-- install WSL (ubuntu)
-- insall VS 2017, VS Code
-- install git
+## Dev Environment (Desktop, either Windows 10 or Mac)
+
+### Setup Windows
+
+- Minikube can be setup on windows via hyper-v or virtualbox, the script make sure minikube can be started reliably.
+- Before doing anything, service principal needs to be setup, it's used by terraform to setup other resources. Since certificate format and storage is different between OS, we use different script used to setup service principal in Windows and Mac.
+
+Run the following script step-by-step
+
+``` powershell 
+.\Scripts\Setup-DevBox.ps1
+.\Scripts\Env\Setup-ServicePrincipal.ps1
+```
+
+### Setup Mac
+
+Run the following script step-by-step 
+
+``` bash
+./Scripts/Setup-DevBox.sh
+./Scripts/Env/Setup-ServicePrincipal.sh
+```
 
 ## Ubuntu 18.0 LTS
 
