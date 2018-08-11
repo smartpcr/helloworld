@@ -1,4 +1,6 @@
-﻿envName: dev3
+﻿subscriptionName: "RRD MSDN Ultimate"
+tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
+envName: dev3
 servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
 aksDnsPrefix: hw-aks-xd
 owner: xiaodoli
