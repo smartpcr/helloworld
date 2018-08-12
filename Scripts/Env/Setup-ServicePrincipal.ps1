@@ -15,6 +15,7 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 Import-Module "$scriptFolder\..\modules\common.psm1" -Force
+Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
 Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder

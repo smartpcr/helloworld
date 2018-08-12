@@ -31,6 +31,10 @@ certName=${productName}-${envName}-${owner}-${loc}-sp
 az keyvault certificate create -n $certName --vault-name $kvName \
     -p "$(az keyvault certificate get-default-policy)"
 
+az keyvault certificate create --vault-name $kvName -n $certName -p "$(az keyvault certificate get-default-policy -o json)"
+az keyvault secret download --vault-name $kvName -n $certName -e base64 -f "$certName.pfx"
+openssl pkcs12 -in "$certName.pfx" -out "$certName.pem" -outkey "$certName.key" -nodes
+
 # create service principal and use certificate to authenticate
 subscriptionId=$(az account show --query id -o tsv)
 userName=$(az account show --query user.name)
