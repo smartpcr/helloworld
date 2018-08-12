@@ -1,7 +1,7 @@
 # do not check in certificate files
-.pem
-.pfx
-.cer 
+**/*.pem
+**/*.pfx
+**/*.cer 
 .terraform/
 .secrets
 **/*.secrets

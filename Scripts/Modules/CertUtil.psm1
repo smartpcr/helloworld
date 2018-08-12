@@ -36,37 +36,47 @@ function New-CertificateAsSecret {
 
 function New-CertificateAsSecret2 {
     param(
+        [string] $ScriptFolder,
         [string] $CertName,
         [string] $VaultName 
     )
 
-    $cert = New-SelfSignedCertificate `
-        -CertStoreLocation "cert:\CurrentUser\My" `
-        -Subject "CN=$CertName" `
-        -KeySpec KeyExchange `
-        -HashAlgorithm "SHA256" `
-        -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider"
     $certPwdSecretName = "$CertName-pwd"
-    $spCertPwdSecret = Get-OrCreatePasswordInVault2 -vaultName $VaultName -secretName $certPwdSecretName
-    $pwd = $spCertPwdSecret.value
-    $pfxFilePath = [System.IO.Path]::GetTempFileName() 
-    Export-PfxCertificate -cert $cert -FilePath $pfxFilePath -Password $pwd -ErrorAction Stop | Out-Null
-    $Bytes = [System.IO.File]::ReadAllBytes($pfxFilePath)
-    $Base64 = [System.Convert]::ToBase64String($Bytes)
-    $JSONBlob = @{
-        data     = $Base64
-        dataType = 'pfx'
-        password = ($pwd | ConvertTo-SecureString -AsPlainText -Force)
+    $spCertPwdSecret = Get-OrCreatePasswordInVault2 -vaultName $VaultName -SecretName $certPwdSecretName
+    $password = $spCertPwdSecret.value 
+
+    $certPrivateKeyFile = "$ScriptFolder/credential/$($CertName)"
+    $certPublicKeyFile = "$ScriptFolder/credential/$($CertName).pub"
+    $pemFilePath = "$ScriptFolder/credential/$($CertName).pem"
+    
+    ssh-keygen -f $certPrivateKeyFile -P $password
+    $certPemString = ssh-keygen -f $certPublicKeyFile -e -m pem 
+    $certPemString | Out-File $pemFilePath
+
+    $privateKeyBytes = [System.IO.File]::ReadAllBytes($certPrivateKeyFile)
+    $privateKeyText = [System.Convert]::ToBase64String($privateKeyBytes)
+    $privateKeyJson = @{
+        data     = $privateKeyText
+        dataType = 'pem'
+        password = $password
     } | ConvertTo-Json
-    $ContentBytes = [System.Text.Encoding]::UTF8.GetBytes($JSONBlob)
+    $ContentBytes = [System.Text.Encoding]::UTF8.GetBytes($privateKeyJson)
     $Content = [System.Convert]::ToBase64String($ContentBytes)
-    $SecretValue = ConvertTo-SecureString -String $Content -AsPlainText -Force
-    Set-AzureKeyVaultSecret -VaultName $VaultName -Name $CertName -SecretValue $SecretValue | Out-Null
+    az keyvault secret set --vault-name $VaultName --name $CertName --value $Content --query $env:out_null
+    az keyvault certificate import --vault-name $VaultName --name $CertName --file $certPrivateKeyFile --password $password
 
-    Remove-Item $pfxFilePath
-    Remove-Item "cert:\\CurrentUser\My\$($cert.Thumbprint)"
-
-    return $cert
+    # $publicKeyBytes = [System.IO.File]::ReadAllBytes($certPublicKeyFile)
+    # $publicKeyText = [System.Convert]::ToBase64String($publicKeyBytes)
+    $publicKeySecretName = "$($CertName)-pub"
+    # az keyvault secret set --vault-name $VaultName --name $publicKeySecretName --value $publicKeyText --query $env:out_null
+    az keyvault certificate import --name $publicKeySecretName --file $certPublicKeyFile --vault-name $VaultName
+    
+    # $pemKeyBytes = [System.Text.Encoding]::UTF8.GetBytes($certPemString)
+    # $pemKeyContent = [System.Convert]::ToBase64String($pemKeyBytes)
+    $pemKeySecretName = "$($CertName)-pem"
+    
+    # az keyvault secret set --vault-name $VaultName --name $pemKeySecretName --value $pemKeyContent --query $env:out_null
+    az keyvault certificate import --name $pemKeySecretName --file $pemFilePath --vault-name $VaultName
 }
 
 function Install-CertFromVaultSecret {

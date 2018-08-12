@@ -72,12 +72,15 @@ if (!$sp) {
         --certificate-permissions get list update delete `
         --secret-permissions get list set delete
 }
+else {
+    Write-Host "Service principal '$spnName' already exists."
+}
 
 $devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
 $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
 $values.subscriptionId = $azureAccount.id
 $values.servicePrincipalAppId = $sp.appId
-$values.tenantId = $sp.tenantId  
+$values.tenantId = $azureAccount.tenantId  
 $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
