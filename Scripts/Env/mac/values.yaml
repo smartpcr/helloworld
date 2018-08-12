@@ -1,0 +1,11 @@
+subscriptionName: RRD MSDN Ultimate
+email: xiaodoli@microsoft.com
+owner: xiaodoli
+subscriptionId: c6f1efb8-906b-437e-99b4-e1f0881ec8d2
+aksDnsPrefix: hw-aks-xd
+servicePrincipalCertThumbprint: 
+servicePrincipalAppId: 7f6f6b97-106e-4b20-bb3c-3cbf7f303af6
+aksServicePrincipalAppId: 
+tenantId: 
+envName: mac
+

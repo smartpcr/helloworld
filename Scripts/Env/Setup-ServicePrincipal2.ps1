@@ -8,30 +8,31 @@
         a) key vault
         b) resource group
 #>
-param([string] $EnvName = "dev")
+param([string] $EnvName = "mac")
 
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
-Import-Module "$scriptFolder\..\modules\common.psm1" -Force
 Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
-Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
+Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
 
 # login and set subscription 
-LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
+$azureAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
 
 $spnName = $bootstrapValues.global.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
+$subscriptionId = $azureAccount.id 
+$env:out_null = "[?n]|[0]"
 
 # create resource group 
 $rg = az group show --name $rgName | ConvertFrom-Json
 if (!$rg) {
     Write-Host "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
-    az group create --name $rgName --location $bootstrapValues.global.location
+    az group create --name $rgName --location $bootstrapValues.global.location --query $env:out_null
 }
 
 # create key vault 
@@ -47,40 +48,37 @@ if (!$kv) {
         --enabled-for-deployment $true `
         --enabled-for-disk-encryption $true `
         --enabled-for-template-deployment $true `
-        --query "[?n]|[0]"
+        --query $env:out_null
 }
 else {
     Write-Host "Key vault $($kv.VaultName) is already created"
 }
 
 # create service principal (SPN) for cluster provision
-$spn = Get-OrCreateServicePrincipalUsingCert -ServicePrincipalName $spnName -VaultName $vaultName -ScriptFolder $scriptFolder -EnvName $EnvName 
+$sp = az ad sp list --display-name $spnName | ConvertFrom-Json
+if (!$sp) {
+    Write-Host "Creating service principal with name '$spnName'..."
 
-Grant-ServicePrincipalPermissions `
-    -servicePrincipalId $spn.Id `
-    -subscriptionId $rmContext.Subscription.Id `
-    -resourceGroupName $rgName `
-    -vaultName $vaultName
+    $certName = $spnName
+    az ad sp create-for-rbac --name $spnName --create-cert --cert $certName --keyvault $vaultName 
+    az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$subscriptionId"
 
-if ($bootstrapValues.global.aks -eq $true) {
-    $aksSpnName = $bootstrapValues.aks.servicePrincipal
-    $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
-    $aksSpn = Get-OrCreateServicePrincipalUsingPassword -ServicePrincipalName $aksSpnName -ServicePrincipalPwdSecretName $askSpnPwdSecretName -VaultName $vaultName -ScriptFolder $scriptFolder -EnvName $EnvName
     
-    # write to values.yaml
-    $devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
-    $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
-    $values.aksServicePrincipalAppId = $aksSpn.ApplicationId
-    $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
-
-
-    Grant-ServicePrincipalPermissions `
-        -servicePrincipalId $aksSpn.Id `
-        -subscriptionId $rmContext.Subscription.Id `
-        -resourceGroupName $rgName `
-        -vaultName $vaultName
+    az keyvault set-policy `
+        --name $vaultName `
+        --resource-group $rgName `
+        --object-id $sp.objectId `
+        --spn $sp.displayName `
+        --certificate-permissions get list update delete `
+        --secret-permissions get list set delete
 }
 
+$devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+$values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
+$values.subscriptionId = $azureAccount.id
+$values.servicePrincipalAppId = $sp.appId
+$values.tenantId = $sp.tenantId  
+$values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
-Connect-ToAzure -EnvName $EnvName -ScriptFolder $scriptFolder
+Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $scriptFolder
