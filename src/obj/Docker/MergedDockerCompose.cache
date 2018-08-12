@@ -1,0 +1,19 @@
+services:
+  helloworld.api:
+    build:
+      context: E:\work\github\containers\helloworld\src
+      dockerfile: HelloWorld.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTPS_PORT: '44329'
+      ASPNETCORE_URLS: https://+:443;http://+:80
+    image: helloworldapi
+    ports:
+    - published: 50685
+      target: 80
+    - published: 44329
+      target: 443
+    volumes:
+    - C:\Users\xd\AppData\Roaming\ASP.NET\Https:/root/.aspnet/https:ro
+    - C:\Users\xd\AppData\Roaming\Microsoft\UserSecrets:/root/.microsoft/usersecrets:ro
+version: '3.4'

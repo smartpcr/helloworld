@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  helloworld.api:
+    image: ${DOCKER_REGISTRY}helloworldapi
+    build:
+      context: .
+      dockerfile: HelloWorld.Api/Dockerfile
