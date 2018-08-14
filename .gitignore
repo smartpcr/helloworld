@@ -2,6 +2,7 @@
 **/*.pem
 **/*.pfx
 **/*.cer 
+**/*.key
 .terraform/
 .secrets
 **/*.secrets
@@ -13,3 +14,4 @@ obj/
 bin/
 Debug/
 Release/
+.DS_Store
