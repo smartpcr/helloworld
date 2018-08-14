@@ -16,6 +16,7 @@ if (!$scriptFolder) {
 }
 Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
 Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
+Import-Module "$scriptFolder\..\modules\VaultUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
 
@@ -50,7 +51,7 @@ if ($kvs.Count -eq 0) {
         --enabled-for-template-deployment $true 
 }
 else {
-    Write-Host "Key vault $($kv.VaultName) is already created"
+    Write-Host "Key vault $($vaultName) is already created"
 }
 
 # create service principal (SPN) for cluster provision
@@ -59,18 +60,7 @@ if (!$sp) {
     Write-Host "Creating service principal with name '$spnName'..."
 
     $certName = $spnName
-    $credentialFolder = "$ScriptFolder\credential"
-    New-Item -Path $credentialFolder -ItemType Directory -Force
-    $defaultPolicyFile = "$credentialFolder\default_policy.json"
-    $pfxCertFile = "$credentialFolder\$certName.pfx"
-    $pemCertFile = "$credentialFolder\$certName.pem"
-    $keyCertFile = "$credentialFolder\$certName.key"
-    az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
-    az keyvault certificate create -n $certName --vault-name $vaultName -p @$defaultPolicyFile
-
-    az keyvault secret download --vault-name $vaultName -n $certName -e base64 -f $pfxCertFile
-    openssl pkcs12 -in $pfxCertFile -clcerts -nodes -out $keyCertFile -passin pass:
-    openssl rsa -in $keyCertFile -out $pemCertFile
+    EnsureCertificateInKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $scriptFolder
     
     az ad sp create-for-rbac -n $spnName --role contributor --keyvault $vaultName --cert $certName 
     $sp = az ad sp list --display-name $spnName | ConvertFrom-Json

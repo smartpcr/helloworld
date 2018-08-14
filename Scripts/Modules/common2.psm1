@@ -80,7 +80,7 @@ function LoginAzureAsUser2 {
     # }
 
     az login
-    az account set --subscription $SubscriptionName --query $env:out_null
+    az account set --subscription $SubscriptionName 
     $currentAccount = az account show | ConvertFrom-Json
 
     return $currentAccount
@@ -95,13 +95,10 @@ function Connect-ToAzure2 {
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
     $vaultName = $bootstrapValues.kv.name
     $spnName = $bootstrapValues.global.servicePrincipal
-    $certName = "$spnName-cert"
+    $certName = $spnName
     $tenantId = $bootstrapValues.global.tenantId
 
-    $pemFilePath = "$ScriptFolder\credential\$certName.pem"
-    az keyvault certificate download --vault-name $vaultName --name $certName --encoding PEM --file $pemFilePath
-    Test-Path $pemFilePath
-    # openssl x509 -in "$certName.pem" -inform PEM  -noout -sha1 -fingerprint
-
-    az login --service-principal -u "http://$spnName" -p "$certName.pem" --tenant $tenantId
+    DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
+    $privateKeyFilePath = "$ScriptFolder\credential\$certName.key"
+    az login --service-principal -u "http://$spnName" -p $privateKeyFilePath --tenant $tenantId
 }
