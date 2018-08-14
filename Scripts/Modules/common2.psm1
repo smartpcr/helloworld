@@ -79,7 +79,10 @@ function Connect-ToAzure2 {
     $certName = $spnName
     $tenantId = $bootstrapValues.global.tenantId
 
-    DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
     $privateKeyFilePath = "$ScriptFolder\credential\$certName.key"
+    if (-not (Test-Path $privateKeyFilePath)) {
+        DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
+    }
+    
     az login --service-principal -u "http://$spnName" -p $privateKeyFilePath --tenant $tenantId
 }
