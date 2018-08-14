@@ -13,6 +13,15 @@ kv:
     certs:
         - servicePrincipleCert: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp"
         - apiSslCert: 
+terraform:
+    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf"
+    servicePrincipalAppId: 
+    servicePrincipalSecretName:
+    stateBlobAccountName:
+    stateBlobAccountConnectionString:
+    stateLockAccountName:
+    stateLockDatabasename:
+    stateLockTableName:
 acr:
     name: "{{ .Values.owner }}acr{{ .Values.envName }}"
     passwordSecretName: "acr-{{ .Values.owner }}acr-{{ .Values.envName }}-pwd"

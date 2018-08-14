@@ -10,6 +10,9 @@
 #>
 param([string] $EnvName = "dev")
 
+$ErrorActionPreference = "Stop"
+Write-Host "Setting up container registry for environment '$EnvName'..."
+
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location

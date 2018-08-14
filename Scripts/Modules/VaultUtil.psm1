@@ -25,11 +25,11 @@ function DownloadCertFromKeyVault {
         [string] $ScriptFolder
     )
 
-    $credentialFolder = "$ScriptFolder\credential"
+    $credentialFolder = Join-Path $ScriptFolder "credential"
     New-Item -Path $credentialFolder -ItemType Directory -Force
-    $pfxCertFile = "$credentialFolder\$certName.pfx"
-    $pemCertFile = "$credentialFolder\$certName.pem"
-    $keyCertFile = "$credentialFolder\$certName.key"
+    $pfxCertFile = Join-Path $credentialFolder "$certName.pfx"
+    $pemCertFile = Join-Path $credentialFolder "$certName.pem"
+    $keyCertFile = Join-Path $credentialFolder "$certName.key"
 
     az keyvault secret download --vault-name $VaultName -n $CertName -e base64 -f $pfxCertFile
     openssl pkcs12 -in $pfxCertFile -clcerts -nodes -out $keyCertFile -passin pass:
