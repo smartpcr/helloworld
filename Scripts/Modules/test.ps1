@@ -32,8 +32,12 @@ az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile
 az keyvault certificate create -n $certName --vault-name $kvName -p @$defaultPolicyFile
 
 az keyvault secret download --vault-name $kvName -n $certName -e base64 -f $pfxCertFile
-openssl pkcs12 -in $pfxCertFile -nokeys -nodes -out $pemCertFile 
 openssl pkcs12 -in $pfxCertFile -clcerts -nodes -out $keyCertFile 
+openssl rsa -in $keyCertFile -out $pemCertFile
+
+# verify 
+openssl rsa -in $keyCertFile -check
+openssl x509 -in $keyCertFile -text -noout
 
 # create service principal and use certificate to authenticate
 $subscriptionId = az account show --query id -o tsv
@@ -43,8 +47,7 @@ $spName="${productName}-${envName}-${owner}-${loc}-sp2"
 
 az ad sp create-for-rbac -n $spName --role contributor --keyvault $kvName --cert $certName 
 
-
-az login --service-principal -u "http://$spName" -p @$pemCertFile --tenant $tenenatId
+az login --service-principal -u "http://$spName" -p $keyCertFile --tenant $tenenatId --debug
 
 az ad sp show --id http://${spName}
 aadAppId=$(az ad sp show --id http://${spName} --query appId -o tsv)
