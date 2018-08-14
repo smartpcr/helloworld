@@ -29,6 +29,9 @@ $rgName = $bootstrapValues.global.resourceGroup
 $subscriptionId = $azureAccount.id 
 $env:out_null = "[?n]|[0]"
 
+$devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+$values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
+
 # create resource group 
 $rgGroups = az group list --query "[?name=='$rgName']" | ConvertFrom-Json
 if (!$rgGroups -or $rgGroups.Count -eq 0) {
@@ -78,8 +81,29 @@ else {
     Write-Host "Service principal '$spnName' already exists."
 }
 
-$devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
-$values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
+
+if ($bootstrapValues.global.aks -eq $true) {
+    $aksSpnName = $bootstrapValues.aks.servicePrincipal
+    $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
+    $aksSpn = Get-OrCreateServicePrincipalUsingPassword2 `
+        -ServicePrincipalName $aksSpnName `
+        -ServicePrincipalPwdSecretName $askSpnPwdSecretName `
+        -VaultName $vaultName `
+        -ScriptFolder $scriptFolder `
+        -EnvName $EnvName
+    $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
+    
+    # write to values.yaml
+    $values.aksServicePrincipalAppId = $aksSpn.appId
+
+    Grant-ServicePrincipalPermissions `
+        -servicePrincipalId $aksSpn.Id `
+        -subscriptionId $rmContext.Subscription.Id `
+        -resourceGroupName $rgName `
+        -vaultName $vaultName
+}
+
+# write to values.yaml
 $values.subscriptionId = $azureAccount.id
 $values.servicePrincipalAppId = $sp.appId
 $values.tenantId = $azureAccount.tenantId  
