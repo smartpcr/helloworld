@@ -9,3 +9,7 @@
 **/*.tfstate
 **/*.tfstate.backup
 credential/
+obj/
+bin/
+Debug/
+Release/
