@@ -74,12 +74,12 @@ function LoginAzureAsUser2 {
         [string] $SubscriptionName
     )
     
-    $currentAccount = az account show | ConvertFrom-Json
-    if ($currentAccount -and $currentAccount.name -eq $SubscriptionName) {
-        return $currentAccount
-    }
+    # $currentAccount = az account show | ConvertFrom-Json
+    # if ($currentAccount -and $currentAccount.name -eq $SubscriptionName) {
+    #     return $currentAccount
+    # }
 
-    az login --query $env:out_null
+    az login
     az account set --subscription $SubscriptionName --query $env:out_null
     $currentAccount = az account show | ConvertFrom-Json
 

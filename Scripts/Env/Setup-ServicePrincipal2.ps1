@@ -8,7 +8,7 @@
         a) key vault
         b) resource group
 #>
-param([string] $EnvName = "mac")
+param([string] $EnvName = "dev")
 
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
@@ -29,15 +29,15 @@ $subscriptionId = $azureAccount.id
 $env:out_null = "[?n]|[0]"
 
 # create resource group 
-$rg = az group show --name $rgName | ConvertFrom-Json
-if (!$rg) {
+$rgGroups = az group list --query "[?name=='$rgName']" | ConvertFrom-Json
+if (!$rgGroups -or $rgGroups.Count -eq 0) {
     Write-Host "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
-    az group create --name $rgName --location $bootstrapValues.global.location --query $env:out_null
+    az group create --name $rgName --location $bootstrapValues.global.location 
 }
 
 # create key vault 
-$kv = az keyvault show --name $vaultName --resource-group $rgName | ConvertFrom-Json
-if (!$kv) {
+$kvs = az keyvault list --resource-group $rgName --query "[?name=='$vaultName']" | ConvertFrom-Json
+if ($kvs.Count -eq 0) {
     Write-Host "Creating Key Vault $vaultName..."
     
     az keyvault create `
@@ -47,8 +47,7 @@ if (!$kv) {
         --location $bootstrapValues.global.location `
         --enabled-for-deployment $true `
         --enabled-for-disk-encryption $true `
-        --enabled-for-template-deployment $true `
-        --query $env:out_null
+        --enabled-for-template-deployment $true 
 }
 else {
     Write-Host "Key vault $($kv.VaultName) is already created"
@@ -60,10 +59,23 @@ if (!$sp) {
     Write-Host "Creating service principal with name '$spnName'..."
 
     $certName = $spnName
-    az ad sp create-for-rbac --name $spnName --create-cert --cert $certName --keyvault $vaultName 
+    $credentialFolder = "$ScriptFolder\credential"
+    New-Item -Path $credentialFolder -ItemType Directory -Force
+    $defaultPolicyFile = "$credentialFolder\default_policy.json"
+    $pfxCertFile = "$credentialFolder\$certName.pfx"
+    $pemCertFile = "$credentialFolder\$certName.pem"
+    $keyCertFile = "$credentialFolder\$certName.key"
+    az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
+    az keyvault certificate create -n $certName --vault-name $vaultName -p @$defaultPolicyFile
+
+    az keyvault secret download --vault-name $vaultName -n $certName -e base64 -f $pfxCertFile
+    openssl pkcs12 -in $pfxCertFile -clcerts -nodes -out $keyCertFile -passin pass:
+    openssl rsa -in $keyCertFile -out $pemCertFile
+    
+    az ad sp create-for-rbac -n $spnName --role contributor --keyvault $vaultName --cert $certName 
+    $sp = az ad sp list --display-name $spnName | ConvertFrom-Json
     az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$subscriptionId"
 
-    
     az keyvault set-policy `
         --name $vaultName `
         --resource-group $rgName `
