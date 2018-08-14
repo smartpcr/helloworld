@@ -10,6 +10,9 @@
 #>
 param([string] $EnvName = "dev")
 
+$ErrorActionPreference = "Stop"
+Write-Host "Setting service principal for environment '$EnvName'..."
+
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location
@@ -19,13 +22,14 @@ Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
 Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
+$spnName = $bootstrapValues.global.servicePrincipal
+$vaultName = $bootstrapValues.kv.name
+$rgName = $bootstrapValues.global.resourceGroup
+Write-Host "Ensure service principal with name '$spnName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
 
 # login and set subscription 
 LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
 
-$spnName = $bootstrapValues.global.servicePrincipal
-$vaultName = $bootstrapValues.kv.name
-$rgName = $bootstrapValues.global.resourceGroup
 
 # create resource group 
 $rg = Get-AzureRmResourceGroup -Name $rgName -ErrorAction SilentlyContinue

@@ -281,8 +281,8 @@ function LoginAzureAsUser {
     
     $rmContext = Get-AzureRmContext
     if (!$rmContext -or $rmContext.Subscription.Name -ne $SubscriptionName) {
-        Login-AzureRmAccount
-        Set-AzureRmContext -Subscription $SubscriptionName
+        Login-AzureRmAccount | Out-Null
+        Set-AzureRmContext -Subscription $SubscriptionName | Out-Null
         $rmContext = Get-AzureRmContext
     }
 

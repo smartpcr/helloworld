@@ -1,10 +1,10 @@
-﻿subscriptionName: "RRD MSDN Ultimate"
-tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
-envName: dev3
+﻿envName: dev3
+email: xiaodoli@microsoft.com
 servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
 aksDnsPrefix: hw-aks-xd
 owner: xiaodoli
-aksServicePrincipalAppId: dbb82f99-86d8-4f81-ae4d-029e83fff2de
+tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
+subscriptionName: RRD MSDN Ultimate
 servicePrincipalAppId: ff820867-4de8-4f98-9c39-6d339c30927d
-email: xiaodoli@microsoft.com
+aksServicePrincipalAppId: dbb82f99-86d8-4f81-ae4d-029e83fff2de
 

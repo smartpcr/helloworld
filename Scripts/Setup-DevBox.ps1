@@ -99,3 +99,6 @@ choco install kubernetes-helm -y
 Write-Host "Install terraform..."
 choco install terraform -y 
 
+# install openssl
+Write-Host "Installing openssl..."
+choco install openssl.light -y 

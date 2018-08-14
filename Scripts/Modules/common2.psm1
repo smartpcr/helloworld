@@ -40,6 +40,15 @@ function New-OrGetServicePrincipalWithCert {
         Write-Host "Creating service principal with name '$spnName'..."
 
         $certName = "$spnName-cert"
+        $defaultPolicyFile = "$ScriptFolder\credential\default_policy.json"
+        $pfxCertFile = "$ScriptFolder\credential\$certName.pfx"
+        $pemCertFile = "$ScriptFolder\credential\$certName.pem"
+        $keyCertFile = "$ScriptFolder\credential\$certName.key"
+        az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
+        az keyvault certificate create -n $certName --vault-name $kvName -p @$defaultPolicyFile
+        az keyvault secret download --vault-name $kvName -n $certName -e base64 -f $pfxCertFile
+        openssl pkcs12 -in $pfxCertFile -out $pemCertFile -outkey $keyCertFile -nodes
+        
         New-CertificateAsSecret2 -CertName $certName -VaultName $vaultName -ScriptFolder $ScriptFolder
         $pemKeySecretName = "$($CertName)-pem"
         
@@ -86,10 +95,12 @@ function Connect-ToAzure2 {
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
     $vaultName = $bootstrapValues.kv.name
     $spnName = $bootstrapValues.global.servicePrincipal
-    $certName = $spnName
+    $certName = "$spnName-cert"
     $tenantId = $bootstrapValues.global.tenantId
 
-    az keyvault certificate download --vault-name $vaultName --name $certName --encoding PEM --file "$certName.pem"
+    $pemFilePath = "$ScriptFolder\credential\$certName.pem"
+    az keyvault certificate download --vault-name $vaultName --name $certName --encoding PEM --file $pemFilePath
+    Test-Path $pemFilePath
     # openssl x509 -in "$certName.pem" -inform PEM  -noout -sha1 -fingerprint
 
     az login --service-principal -u "http://$spnName" -p "$certName.pem" --tenant $tenantId
