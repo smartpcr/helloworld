@@ -21,53 +21,34 @@ function Get-OrCreatePasswordInVault2 {
     return $res 
 }
 
-function New-OrGetServicePrincipalWithCert {
+function Get-OrCreateServicePrincipalUsingPassword2 {
     param(
+        [string] $ServicePrincipalName,
+        [string] $ServicePrincipalPwdSecretName,
+        [string] $VaultName,
         [string] $ScriptFolder,
         [string] $EnvName
     )
 
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
-    $spnName = $bootstrapValues.global.servicePrincipal
-    $vaultName = $bootstrapValues.kv.name
+    $spFound =  az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+    if ($spFound) {
+        return $sp;
+    }
+
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+
     $rgName = $bootstrapValues.global.resourceGroup
-    $subscriptionId = $azureAccount.id 
-
-
-    # create service principal (SPN) for cluster provision
-    $sp = az ad sp list --display-name $spnName | ConvertFrom-Json
-    if (!$sp) {
-        Write-Host "Creating service principal with name '$spnName'..."
-
-        $certName = "$spnName-cert"
-        $defaultPolicyFile = "$ScriptFolder\credential\default_policy.json"
-        $pfxCertFile = "$ScriptFolder\credential\$certName.pfx"
-        $pemCertFile = "$ScriptFolder\credential\$certName.pem"
-        $keyCertFile = "$ScriptFolder\credential\$certName.key"
-        az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
-        az keyvault certificate create -n $certName --vault-name $kvName -p @$defaultPolicyFile
-        az keyvault secret download --vault-name $kvName -n $certName -e base64 -f $pfxCertFile
-        openssl pkcs12 -in $pfxCertFile -out $pemCertFile -outkey $keyCertFile -nodes
-        
-        New-CertificateAsSecret2 -CertName $certName -VaultName $vaultName -ScriptFolder $ScriptFolder
-        $pemKeySecretName = "$($CertName)-pem"
-        
-        $sp = az ad sp create-for-rbac --name $spnName | ConvertFrom-Json
-        az ad sp credential reset --name $spnName --cert $pemKeySecretName --keyvault $vaultName --append
-        az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$subscriptionId"
+    $azAccount = az account show | ConvertFrom-Json
+    $subscriptionId = $azAccount.id
+    $scopes = "/subscriptions/$subscriptionId/resourceGroups/$($rgName)"
     
-        az keyvault set-policy `
-            --name $vaultName `
-            --resource-group $rgName `
-            --object-id $sp.objectId `
-            --spn $sp.displayName `
-            --certificate-permissions get list update delete `
-            --secret-permissions get list set delete
-    }
-    else {
-        Write-Host "Service principal '$spnName' already exists."
-    }
+    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
+    az ad sp create-for-rbac --name $ServicePrincipalName --password $($servicePrincipalPwd.value) --role="Contributor" --scopes=$scopes 
+    
+    $sp = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+    return $sp 
 }
+
 
 function LoginAzureAsUser2 {
     param (
@@ -80,7 +61,7 @@ function LoginAzureAsUser2 {
     # }
 
     az login
-    az account set --subscription $SubscriptionName --query $env:out_null
+    az account set --subscription $SubscriptionName 
     $currentAccount = az account show | ConvertFrom-Json
 
     return $currentAccount
@@ -95,13 +76,13 @@ function Connect-ToAzure2 {
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
     $vaultName = $bootstrapValues.kv.name
     $spnName = $bootstrapValues.global.servicePrincipal
-    $certName = "$spnName-cert"
+    $certName = $spnName
     $tenantId = $bootstrapValues.global.tenantId
 
-    $pemFilePath = "$ScriptFolder\credential\$certName.pem"
-    az keyvault certificate download --vault-name $vaultName --name $certName --encoding PEM --file $pemFilePath
-    Test-Path $pemFilePath
-    # openssl x509 -in "$certName.pem" -inform PEM  -noout -sha1 -fingerprint
-
-    az login --service-principal -u "http://$spnName" -p "$certName.pem" --tenant $tenantId
+    $privateKeyFilePath = "$ScriptFolder\credential\$certName.key"
+    if (-not (Test-Path $privateKeyFilePath)) {
+        DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
+    }
+    
+    az login --service-principal -u "http://$spnName" -p $privateKeyFilePath --tenant $tenantId
 }

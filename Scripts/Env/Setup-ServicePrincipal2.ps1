@@ -16,6 +16,7 @@ if (!$scriptFolder) {
 }
 Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
 Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
+Import-Module "$scriptFolder\..\modules\VaultUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
 
@@ -27,6 +28,9 @@ $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
 $subscriptionId = $azureAccount.id 
 $env:out_null = "[?n]|[0]"
+
+$devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+$values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
 
 # create resource group 
 $rgGroups = az group list --query "[?name=='$rgName']" | ConvertFrom-Json
@@ -50,7 +54,7 @@ if ($kvs.Count -eq 0) {
         --enabled-for-template-deployment $true 
 }
 else {
-    Write-Host "Key vault $($kv.VaultName) is already created"
+    Write-Host "Key vault $($vaultName) is already created"
 }
 
 # create service principal (SPN) for cluster provision
@@ -59,18 +63,7 @@ if (!$sp) {
     Write-Host "Creating service principal with name '$spnName'..."
 
     $certName = $spnName
-    $credentialFolder = "$ScriptFolder\credential"
-    New-Item -Path $credentialFolder -ItemType Directory -Force
-    $defaultPolicyFile = "$credentialFolder\default_policy.json"
-    $pfxCertFile = "$credentialFolder\$certName.pfx"
-    $pemCertFile = "$credentialFolder\$certName.pem"
-    $keyCertFile = "$credentialFolder\$certName.key"
-    az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
-    az keyvault certificate create -n $certName --vault-name $vaultName -p @$defaultPolicyFile
-
-    az keyvault secret download --vault-name $vaultName -n $certName -e base64 -f $pfxCertFile
-    openssl pkcs12 -in $pfxCertFile -clcerts -nodes -out $keyCertFile -passin pass:
-    openssl rsa -in $keyCertFile -out $pemCertFile
+    EnsureCertificateInKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $scriptFolder
     
     az ad sp create-for-rbac -n $spnName --role contributor --keyvault $vaultName --cert $certName 
     $sp = az ad sp list --display-name $spnName | ConvertFrom-Json
@@ -88,8 +81,29 @@ else {
     Write-Host "Service principal '$spnName' already exists."
 }
 
-$devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
-$values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
+
+if ($bootstrapValues.global.aks -eq $true) {
+    $aksSpnName = $bootstrapValues.aks.servicePrincipal
+    $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
+    $aksSpn = Get-OrCreateServicePrincipalUsingPassword2 `
+        -ServicePrincipalName $aksSpnName `
+        -ServicePrincipalPwdSecretName $askSpnPwdSecretName `
+        -VaultName $vaultName `
+        -ScriptFolder $scriptFolder `
+        -EnvName $EnvName
+    $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
+    
+    # write to values.yaml
+    $values.aksServicePrincipalAppId = $aksSpn.appId
+
+    Grant-ServicePrincipalPermissions `
+        -servicePrincipalId $aksSpn.Id `
+        -subscriptionId $rmContext.Subscription.Id `
+        -resourceGroupName $rgName `
+        -vaultName $vaultName
+}
+
+# write to values.yaml
 $values.subscriptionId = $azureAccount.id
 $values.servicePrincipalAppId = $sp.appId
 $values.tenantId = $azureAccount.tenantId  

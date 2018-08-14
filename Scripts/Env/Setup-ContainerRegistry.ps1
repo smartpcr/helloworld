@@ -10,6 +10,7 @@ if (!$scriptFolder) {
 Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
 Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
 Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
+Import-Module "$scriptFolder\..\modules\VaultUtil.psm1" -Force
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 $rgName = $bootstrapValues.global.resourceGroup
@@ -37,7 +38,16 @@ $acrPassword = "$(az acr credential show -n $acrName --query ""passwords[0].valu
 
 Write-Host "ACR $acrName is created with user: $acrUsername and password: $acrPassword"
 
-Set-AzureKeyVaultSecret -VaultName $vaultName -Name $acrPwdSecretName -SecretValue ($acrPassword | ConvertTo-SecureString -AsPlainText -Force)
+az keyvault secret set --vault-name $vaultName --name $acrPwdSecretName --value $acrPassword
+
+<# # No need to assign contributor role (inherited from subscription scope)
+# grant read/write role to service principal 
+$acrId = "$(az acr show --name $acrName --query id --output tsv)"
+$spAppObjId = "$(az ad sp show --id $($bootstrapValues.global.servicePrincipalAppId) --query objectId --output tsv)"
+# AAD propagation error: "No matches in graph database for ..."
+
+az role assignment create --assignee $spAppObjId --scope $acrId --role Reader 
+#>
 
 return @{
     acrUsername = $acrUsername
