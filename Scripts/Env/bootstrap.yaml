@@ -16,7 +16,7 @@ kv:
 terraform:
     servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf"
     servicePrincipalAppId: 
-    servicePrincipalSecretName:
+    servicePrincipalSecretName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-secret"
     stateBlobAccountName:
     stateBlobAccountConnectionString:
     stateLockAccountName:
