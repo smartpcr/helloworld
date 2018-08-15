@@ -1,7 +1,9 @@
 terraform {
   backend "azurerm" {
-    storage_account_name = "lingxd_rrd_ultimate"
+    resource_group_name  = "tfstate"
+    storage_account_name = "rrdtfstate"
     container_name       = "tfstate"
     key                  = "default.terraform.tfstate"
+    access_key           = "ZHVtbXk="
   }
 }

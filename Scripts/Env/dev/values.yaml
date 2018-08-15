@@ -5,6 +5,7 @@ aksDnsPrefix: hw-aks-xd
 owner: xiaodoli
 tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
 subscriptionName: RRD MSDN Ultimate
-servicePrincipalAppId: ff820867-4de8-4f98-9c39-6d339c30927d
-aksServicePrincipalAppId: dbb82f99-86d8-4f81-ae4d-029e83fff2de
+servicePrincipalAppId: 9bdad60f-ef13-45c3-9373-ec6e8d5f978d
+subscriptionId: c6f1efb8-906b-437e-99b4-e1f0881ec8d2
+aksServicePrincipalAppId: 301f388c-e1a9-4bdd-8605-8e959c83752c
 

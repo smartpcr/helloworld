@@ -66,3 +66,5 @@ currentUser=$(az ad user list --query "[?contains(userPrincipalName, '${currentU
 
 
 # install certificate to local machine
+
+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("dummy"))

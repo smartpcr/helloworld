@@ -1,11 +1,14 @@
 # Bootstrap
 
-All terraform provisioning step requires service principal has already been created and secrets/certs are already stored in key vault. 
+***Terraform azure provider does NOT support service principal authentication via certificate.*** 
+
+All terraform provisioning step requires service principal has already been created and secrets are already stored in key vault. 
 
 The service principal will have contributor to the subscription and KV CRUD permission policy.
 
 ``` powershell
 ./Scripts/Env/Setup-ServicePrincipal.ps1
+./Scripts/Provision/Setup-TerraformAccess.ps1
 ```
 
 # Provision 
