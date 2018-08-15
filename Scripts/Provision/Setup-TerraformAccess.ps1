@@ -55,6 +55,6 @@ az login --service-principal -u "http://$spnName" -p $tfSpPwd.value --tenant $te
 
 Write-Host "4) Provisioning storage account..." -ForegroundColor Green
 Set-Location "$provisionFolder/state"
-terraform init 
+terraform init -backend-config="./state.tf"
 terraform plan --var-file ./variables.tfvars --var-file $spnPasswordFile
 terraform apply --var-file ./variables.tfvars --var-file $spnPasswordFile

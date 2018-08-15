@@ -6,11 +6,14 @@ function SetTerraformValue {
 
     $content = Get-Content $valueFile 
     $regex = New-Object System.Text.RegularExpressions.Regex("$name\s*=\s*""?([^""]*)\""?")
+    $replaceValue = "$name = ""$value"""
     $buffer = New-Object System.Text.StringBuilder
     $content | ForEach-Object {
         $line = $_ 
-        $line = $regex.Replace($line, $replaceValue)
-        $buffer.AppendLine($line) | Out-Null
+        if ($line) {
+            $line = $regex.Replace($line, $replaceValue)
+            $buffer.AppendLine($line) | Out-Null
+        }
     }
-    $buffer.ToString() | Out-File $valueFile
+    $buffer.ToString().TrimEnd() | Out-File $valueFile
 }
