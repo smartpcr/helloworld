@@ -13,7 +13,7 @@ function SetTerraformValue {
     if ($match.Success) {
         $content | ForEach-Object {
             $line = $_ 
-            if ($line) {
+            if ($line -and $line.Length -gt 0) {
                 $line = $regex.Replace($line, $replaceValue)
                 $buffer.AppendLine($line) | Out-Null
             }
@@ -24,5 +24,6 @@ function SetTerraformValue {
         $buffer.AppendLine($replaceValue)
     }
 
-    $buffer.ToString().TrimEnd() | Out-File $valueFile
+    $buffer.ToString().Trim() | Out-File $valueFile -Encoding ascii
+    terraform fmt $valueFile
 }

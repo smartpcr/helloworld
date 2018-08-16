@@ -31,10 +31,10 @@ $spnPwdSecretName = $bootstrapValues.terraform.servicePrincipalSecretName
 $secretValueFile = Join-Path $EnvFolder "credential/$EnvName/azure_provider.tfvars"
 if (-not (Test-Path $secretValueFile)) {
     New-Item -Path (Join-Path $EnvFolder "credential/$EnvName") -ItemType Directory -Force | Out-Null
-    New-Item -Path $secretValueFile -ItemType File -Force | Out-Null
+    "" | Out-File $secretValueFile
 }
 SetTerraformValue -valueFile $secretValueFile -name "tenant_id" -value $tenantId
-$stateValueFile = Join-Path $provisionFolder "state/variables.tfvars"
+$stateValueFile = Join-Path $provisionFolder "state/terraform.tfvars"
 SetTerraformValue -valueFile $stateValueFile -name "resource_group_name" -value $rgName
 
 Write-Host "2) Ensure service principal is created with password stored in key vault" -ForegroundColor Green
@@ -58,7 +58,23 @@ Write-Host "3) Login as service principal '$spnName'" -ForegroundColor Green
 az login --service-principal -u "http://$spnName" -p $tfSpPwd.value --tenant $tenantId
 
 Write-Host "4) Provisioning storage account..." -ForegroundColor Green
+$tfStorageAccountName = $bootstrapValues.terraform.storageAccountName
+$tfBlobContainerName = $bootstrapValues.terraform.blobContainerName
+$tfStorageAcct = az storage account show --resource-group $rgName --name $tfStorageAccountName | ConvertFrom-Json
+if (!$tfStorageAcct) {
+    az storage account create --resource-group $rgName --name $tfStorageAccountName
+    $tfStorageAcct = az storage account show --resource-group $rgName --name $tfStorageAccountName | ConvertFrom-Json
+    $storageKeys = az storage account keys list --resource-group $rgName --account-name $tfStorageAccountName | ConvertFrom-Json
+    az storage container create --name $tfBlobContainerName --account-name $tfStorageAccountName --account-key $storageKeys[0].value
+}
+$tfStorageAccessKey = $(az storage account keys list --resource-group $rgName --account-name $tfStorageAccountName | ConvertFrom-Json)[0].value 
+$stateFile = Join-Path $provisionFolder "state/main.tf"
+SetTerraformValue -valueFile $stateFile -name "storage_account_name" -value $tfStorageAccountName
+SetTerraformValue -valueFile $stateFile -name "container_name" -value $tfBlobContainerName
+SetTerraformValue -valueFile $stateFile -name "resource_group_name" -value $rgName
+SetTerraformValue -valueFile $secretValueFile -name "access_key" -value $tfStorageAccessKey
+
 Set-Location "$provisionFolder/state"
-terraform init -backend-config $secretValueFile
-terraform plan -var-file ./variables.tfvars -var-file $spnPasswordFile
-terraform apply -var-file ./variables.tfvars -var-file $spnPasswordFile
+terraform init -upgrade -backend-config="access_key=$tfStorageAccessKey"
+terraform plan -var-file $secretValueFile
+terraform apply -var-file $secretValueFile

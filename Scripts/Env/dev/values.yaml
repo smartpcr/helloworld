@@ -8,4 +8,5 @@ subscriptionName: RRD MSDN Ultimate
 servicePrincipalAppId: 9bdad60f-ef13-45c3-9373-ec6e8d5f978d
 subscriptionId: c6f1efb8-906b-437e-99b4-e1f0881ec8d2
 aksServicePrincipalAppId: 301f388c-e1a9-4bdd-8605-8e959c83752c
-
+terraformStorageAccountName: "rrdtfstate"
+terraformBlobContainerName: "tfstate"

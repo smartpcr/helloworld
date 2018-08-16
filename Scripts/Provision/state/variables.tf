@@ -18,8 +18,3 @@ variable "resource_group_name" {
   default     = "terraform"
   description = "Name of resource group"
 }
-
-variable "env_name" {
-  default     = "dev"
-  description = "Target deployment environment name, such as dev, test, prod, etc"
-}

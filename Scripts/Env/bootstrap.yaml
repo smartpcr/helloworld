@@ -17,8 +17,8 @@ terraform:
     servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf"
     servicePrincipalAppId: 
     servicePrincipalSecretName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-secret"
-    stateBlobAccountName:
-    stateBlobAccountConnectionString:
+    storageAccountName: "{{ .Values.terraformStorageAccountName }}"
+    blobContainerName: "{{ .Values.terraformBlobContainerName }}"
     stateLockAccountName:
     stateLockDatabasename:
     stateLockTableName:
