@@ -34,7 +34,7 @@ if (-not (Test-Path $secretValueFile)) {
     "" | Out-File $secretValueFile
 }
 SetTerraformValue -valueFile $secretValueFile -name "tenant_id" -value $tenantId
-$stateValueFile = Join-Path $provisionFolder "state/terraform.tfvars"
+$stateValueFile = Join-Path $provisionFolder "backend/terraform.tfvars"
 SetTerraformValue -valueFile $stateValueFile -name "resource_group_name" -value $rgName
 
 Write-Host "2) Ensure service principal is created with password stored in key vault" -ForegroundColor Green
@@ -68,13 +68,13 @@ if (!$tfStorageAcct) {
     az storage container create --name $tfBlobContainerName --account-name $tfStorageAccountName --account-key $storageKeys[0].value
 }
 $tfStorageAccessKey = $(az storage account keys list --resource-group $rgName --account-name $tfStorageAccountName | ConvertFrom-Json)[0].value 
-$stateFile = Join-Path $provisionFolder "state/main.tf"
+$stateFile = Join-Path $provisionFolder "backend/main.tf"
 SetTerraformValue -valueFile $stateFile -name "storage_account_name" -value $tfStorageAccountName
 SetTerraformValue -valueFile $stateFile -name "container_name" -value $tfBlobContainerName
 SetTerraformValue -valueFile $stateFile -name "resource_group_name" -value $rgName
 SetTerraformValue -valueFile $secretValueFile -name "access_key" -value $tfStorageAccessKey
 
-Set-Location "$provisionFolder/state"
+Set-Location "$provisionFolder/backend"
 terraform init -upgrade -backend-config="access_key=$tfStorageAccessKey"
 terraform plan -var-file $secretValueFile
 terraform apply -var-file $secretValueFile
