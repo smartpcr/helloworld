@@ -99,11 +99,14 @@ if ($bootstrapValues.global.aks -eq $true) {
     # write to values.yaml
     $values.aksServicePrincipalAppId = $aksSpn.appId
 
-    Grant-ServicePrincipalPermissions `
-        -servicePrincipalId $aksSpn.Id `
-        -subscriptionId $rmContext.Subscription.Id `
-        -resourceGroupName $rgName `
-        -vaultName $vaultName
+    az role assignment create --assignee-object-id $aksSpn.appId --role Contributor --resource-group $rgName
+    az keyvault set-policy `
+        --name $vaultName `
+        --resource-group $rgName `
+        --object-id $aksSpn.objectId `
+        --spn $aksSpn.displayName `
+        --certificate-permissions get list update delete `
+        --secret-permissions get list set delete
 }
 
 # write to values.yaml
