@@ -15,3 +15,7 @@ bin/
 Debug/
 Release/
 .DS_Store
+node_modules/
+package-lock.json
+.vs/
+.idea/

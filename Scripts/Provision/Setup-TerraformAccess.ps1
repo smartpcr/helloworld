@@ -29,6 +29,10 @@ $tenantId = $bootstrapValues.global.tenantId
 $spnPwdSecretName = $bootstrapValues.terraform.servicePrincipalSecretName
 
 $secretValueFile = Join-Path $EnvFolder "credential/$EnvName/azure_provider.tfvars"
+if (-not (Test-Path $secretValueFile)) {
+    New-Item -Path (Join-Path $EnvFolder "credential/$EnvName") -ItemType Directory -Force | Out-Null
+    New-Item -Path $secretValueFile -ItemType File -Force | Out-Null
+}
 SetTerraformValue -valueFile $secretValueFile -name "tenant_id" -value $tenantId
 $stateValueFile = Join-Path $provisionFolder "state/variables.tfvars"
 SetTerraformValue -valueFile $stateValueFile -name "resource_group_name" -value $rgName
@@ -55,6 +59,6 @@ az login --service-principal -u "http://$spnName" -p $tfSpPwd.value --tenant $te
 
 Write-Host "4) Provisioning storage account..." -ForegroundColor Green
 Set-Location "$provisionFolder/state"
-terraform init -backend-config="./state.tf"
-terraform plan --var-file ./variables.tfvars --var-file $spnPasswordFile
-terraform apply --var-file ./variables.tfvars --var-file $spnPasswordFile
+terraform init -backend-config $secretValueFile
+terraform plan -var-file ./variables.tfvars -var-file $spnPasswordFile
+terraform apply -var-file ./variables.tfvars -var-file $spnPasswordFile
