@@ -1,0 +1,1 @@
+simple random generator api using __aspnetcore 2.1__ from [wes higbee](https://github.com/g0t4/aspnetcore-generator-api)
