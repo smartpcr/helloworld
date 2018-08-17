@@ -19,6 +19,8 @@ Write-Host "1) load environment yaml settings from Env/${EnvName}..." -Foregroun
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvFolder
 $acrName = $bootstrapValues.acr.name
 $spnName = $bootstrapValues.global.servicePrincipal
+$rgName = $bootstrapValues.global.resourceGroup
+$acrLoginServer = "$(az acr show --resource-group $rgName --name $acrName --query "{acrLoginServer:loginServer}" --output tsv)"
 
 Write-Host "2) Login to azure as service principal '$spnName' ..."
 Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $EnvFolder
@@ -30,8 +32,8 @@ dotnet publish generator-api.csproj
 $imageTag = "master-commitId"
 $imageName = "generator-api"
 docker build -t "$($imageName):$($imageTag)" .
-docker tag "$($imageName):$($imageTag)" "$($acrName).azurecr.io/$($imageName):$($imageTag)"
+docker tag "$($imageName):$($imageTag)" "$($acrLoginServer)/$($imageName):$($imageTag)"
 
 Write-Host "4) publishing image to acr..."
 az acr login -n $acrName
-docker push "$($acrName).azurecr.io/$($imageName):$($imageTag)"
+docker push "$($acrLoginServer)/$($imageName):$($imageTag)"
