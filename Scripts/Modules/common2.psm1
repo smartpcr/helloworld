@@ -82,7 +82,7 @@ function Connect-ToAzure2 {
     $privateKeyFilePath = "$ScriptFolder\credential\$certName.key"
     if (-not (Test-Path $privateKeyFilePath)) {
         az login
-        az account set --subscription $bootstrapValues.global.$SubscriptionName
+        az account set --subscription $bootstrapValues.global.subscriptionName
         DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
     }
     
