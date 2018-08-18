@@ -23,7 +23,7 @@ $rgName = $bootstrapValues.global.resourceGroup
 $acrLoginServer = "$(az acr show --resource-group $rgName --name $acrName --query "{acrLoginServer:loginServer}" --output tsv)"
 
 Write-Host "2) Login to azure as service principal '$spnName' ..."
-Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $EnvFolder
+LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $EnvFolder
 
 Write-Host "3) build docker image..."
 dotnet restore generator-api.csproj 

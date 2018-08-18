@@ -67,7 +67,7 @@ function LoginAzureAsUser2 {
     return $currentAccount
 }
 
-function Connect-ToAzure2 {
+function LoginAsServicePrincipal {
     param (
         [string] $EnvName = "dev",
         [string] $ScriptFolder

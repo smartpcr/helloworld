@@ -20,7 +20,7 @@ $acrPwdSecretName = $bootstrapValues.acr.passwordSecretName
 Write-Host "Ensure container registry with name '$acrName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
 
 # login to azure 
-Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $scriptFolder
+LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $scriptFolder
 
 # use ACR
 $acrFound = "$(az acr list -g $rgName --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"

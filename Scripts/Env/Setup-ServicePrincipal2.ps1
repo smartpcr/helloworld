@@ -116,4 +116,4 @@ $values.tenantId = $azureAccount.tenantId
 $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
-Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $scriptFolder
+LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $scriptFolder

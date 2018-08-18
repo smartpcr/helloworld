@@ -33,7 +33,7 @@ $aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
 
 # login to azure 
-Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $scriptFolder
+LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $scriptFolder
 
 $aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
 
