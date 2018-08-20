@@ -47,6 +47,6 @@ aks:
     servicePrincipalPassword: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp-pwd"
     nodeCount: 3
     vmSize: Standard_D1_v2
-    ssh_pubblic_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert.pub"
+    ssh_pubblic_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert-pub"
     ssh_private_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert"
     ssh_cert_pwd_ame: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert-pwd"

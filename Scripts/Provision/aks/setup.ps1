@@ -36,6 +36,7 @@ $tfSpPwd = Get-OrCreatePasswordInVault2 -VaultName $bootstrapValues.kv.name -Sec
 az login --service-principal -u "http://$($bootstrapValues.terraform.servicePrincipal)" -p $tfSpPwd.value --tenant $bootstrapValues.global.tenantId
 $tfsp = az ad sp list --display-name $bootstrapValues.terraform.servicePrincipal | ConvertFrom-Json
 
+
 Write-Host "3) Retrieve aks service principal..." -ForegroundColor Green
 $servicePrincipalPwd = az keyvault secret show `
     --vault-name $bootstrapValues.kv.name `
@@ -49,19 +50,19 @@ SetTerraformValue -valueFile $credentialTfFile -name "client_secret" -value $ser
 SetTerraformValue -valueFile $akstfvarFile -name "aks_service_principal_app_id" -value $bootstrapValues.aks.servicePrincipalAppId
 SetTerraformValue -valueFile $credentialTfFile -name "aks_service_principal_password" -value $servicePrincipalPwd.value 
 
+
 Write-Host "4) Ensure linux ssh key is available..." -ForegroundColor Green
-$aksCertFile = Join-Path $envCredentialFolder $bootstrapValues.aks.ssh_private_key
+EnsureSshCert `
+    -VaultName $bootstrapValues.kv.name `
+    -CertName $bootstrapValues.aks.ssh_private_key `
+    -EnvName $EnvName `
+    -ScriptFolder $scriptFolder
 $aksCertPublicKeyFile = Join-Path $envCredentialFolder $bootstrapValues.aks.ssh_pubblic_key
-if (-not (Test-Path $aksCertFile)) {
-    $aksCertPasswordSecretName = $bootstrapValues.aks.ssh_cert_pwd_ame
-    $askCertPassword = Get-OrCreatePasswordInVault2 -VaultName $bootstrapValues.kv.name -SecretName $aksCertPasswordSecretName
-    ssh-keygen -f $aksCertFile -P $askCertPassword.value 
-    $certPemString = ssh-keygen -f $aksCertFile -e -m pem 
-    $certPemString | Out-File $aksCertPublicKeyFile
-}
+
 SetTerraformValue -valueFile $credentialTfFile -name "aks_ssh_public_key" -value $aksCertPublicKeyFile 
 
 Write-Host "5) Run terraform provision..." -ForegroundColor Green
 terraform init 
 terraform plan -var-file $credentialTfFile
 terraform apply -var-file $credentialTfFile
+# terraform destroy -var-file $credentialTfFile
