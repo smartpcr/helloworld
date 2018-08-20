@@ -38,5 +38,5 @@ function SetTerraformValue {
         }
     }
 
-    $buffer.ToString() | Out-File $valueFile
+    $buffer.ToString() | Out-File $valueFile -Encoding ascii
 }
