@@ -18,11 +18,9 @@ terraform:
     servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf"
     servicePrincipalAppId: 
     servicePrincipalSecretName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-secret"
-    stateBlobAccountName:
-    stateBlobAccountConnectionString:
-    stateLockAccountName:
-    stateLockDatabasename:
-    stateLockTableName:
+    stateStorageAccountName: "tfstorage{{ .Values.owner }}"
+    stateStorageAccountConnectionString:
+    stateBlobContainerName: "tfstate"
 acr:
     name: "{{ .Values.owner }}acr{{ .Values.envName }}"
     resourceGroup: "{{ .Values.owner }}"
