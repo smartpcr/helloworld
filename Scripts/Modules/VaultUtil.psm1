@@ -10,9 +10,9 @@ function EnsureCertificateInKeyVault {
         Write-Host "Certificate '$CertName' already exists in vault '$VaultName'"
     }
     else {
-        $credentialFolder = "$ScriptFolder\credential"
+        $credentialFolder = Join-Path $ScriptFolder "credential"
         New-Item -Path $credentialFolder -ItemType Directory -Force
-        $defaultPolicyFile = "$credentialFolder\default_policy.json"
+        $defaultPolicyFile = Join-Path $credentialFolder "default_policy.json"
         az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
         az keyvault certificate create -n $CertName --vault-name $vaultName -p @$defaultPolicyFile
     }

@@ -6,15 +6,15 @@ variable "location" {
 }
 
 
-variable "service_principal_id" {
+variable "aks_service_principal_app_id" {
   type = "string"
 }
 
-variable "service_principal_password" {
+variable "aks_service_principal_password" {
   type = "string"
 }
 
-variable "ssh_public_key" {
+variable "aks_ssh_public_key" {
   type = "string"
 }
 
@@ -36,8 +36,8 @@ variable "tags" {
   type = "map"
 
   default = {
-    Environment = "Demo"
-    Responsible = "Thorsten Hans"
+    Environment = "dev"
+    Responsible = "Xiaodong Li"
   }
 }
 

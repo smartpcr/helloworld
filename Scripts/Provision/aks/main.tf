@@ -31,7 +31,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
     admin_username = "azureuser"
 
     ssh_key {
-      key_data = "${file("${var.ssh_public_key}")}"
+      key_data = "${file("${var.aks_ssh_public_key}")}"
     }
   }
 
@@ -45,8 +45,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   service_principal {
-    client_id     = "${var.service_principal_id}"
-    client_secret = "${var.service_principal_password}"
+    client_id     = "${var.aks_service_principal_app_id}"
+    client_secret = "${var.aks_service_principal_password}"
   }
 
   tags = "${var.tags}"

@@ -79,7 +79,7 @@ function LoginAsServicePrincipal {
     $certName = $spnName
     $tenantId = $bootstrapValues.global.tenantId
 
-    $privateKeyFilePath = "$ScriptFolder\credential\$certName.key"
+    $privateKeyFilePath = "$ScriptFolder/credential/$certName.key"
     if (-not (Test-Path $privateKeyFilePath)) {
         az login
         az account set --subscription $bootstrapValues.global.subscriptionName

@@ -34,7 +34,7 @@ if (-not (Test-Path $secretValueFile)) {
     New-Item -Path $secretValueFile -ItemType File -Force | Out-Null
 }
 SetTerraformValue -valueFile $secretValueFile -name "tenant_id" -value $tenantId
-$stateValueFile = Join-Path $provisionFolder "state/variables.tfvars"
+$stateValueFile = Join-Path $provisionFolder "state/terraform.tfvars"
 SetTerraformValue -valueFile $stateValueFile -name "resource_group_name" -value $rgName
 
 Write-Host "2) Ensure service principal is created with password stored in key vault" -ForegroundColor Green
@@ -48,6 +48,13 @@ if (!$tfSp) {
     az ad sp create-for-rbac -n $spnName --role contributor --password $tfSpPwd.value 
     $tfSp = az ad sp list --display-name $spnName | ConvertFrom-Json
     az role assignment create --assignee $tfSp.appId --role Contributor --scope "/subscriptions/$subscriptionId"
+    az keyvault set-policy `
+        --name $vaultName `
+        --resource-group $rgName `
+        --object-id $tfSp.objectId `
+        --spn $tfSp.displayName `
+        --certificate-permissions get list update delete `
+        --secret-permissions get list set delete
 }
 
 SetTerraformValue -valueFile $secretValueFile -name "subscription_id" -value $subscriptionId
@@ -59,6 +66,6 @@ az login --service-principal -u "http://$spnName" -p $tfSpPwd.value --tenant $te
 
 Write-Host "4) Provisioning storage account..." -ForegroundColor Green
 Set-Location "$provisionFolder/state"
-terraform init -backend-config $secretValueFile
-terraform plan -var-file ./variables.tfvars -var-file $spnPasswordFile
-terraform apply -var-file ./variables.tfvars -var-file $spnPasswordFile
+terraform init -backend-config $secretValueFile 
+terraform plan -var-file ./terraform.tfvars -var-file $spnPasswordFile
+terraform apply -var-file ./terraform.tfvars -var-file $spnPasswordFile
