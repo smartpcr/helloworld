@@ -39,6 +39,7 @@ if (!$rg) {
 }
 
 # create key vault 
+New-AzureRmResourceGroup -Name $bootstrapValues.kv.resourceGroup -Location $bootstrapValues.kv.location
 $kv = Get-AzureRmKeyVault -VaultName $vaultName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 if (!$kv) {
     Write-Host "Creating Key Vault $vaultName..."

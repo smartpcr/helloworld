@@ -9,11 +9,12 @@ global:
     aks: true
     sf: false
 kv:
-    name: "{{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-kv"
-    certs:
-        - servicePrincipleCert: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-sp"
-        - apiSslCert: 
+    name: "{{ .Values.owner }}-kv"
+    resourceGroup: "{{ .Values.owner }}"
+    location: "{{ .Values.location }}"
 terraform:
+    resourceGroup: "{{ .Values.owner }}"
+    location: "{{ .Values.location }}"
     servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf"
     servicePrincipalAppId: 
     servicePrincipalSecretName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-secret"
@@ -24,6 +25,8 @@ terraform:
     stateLockTableName:
 acr:
     name: "{{ .Values.owner }}acr{{ .Values.envName }}"
+    resourceGroup: "{{ .Values.owner }}"
+    location: "{{ .Values.location }}"
     passwordSecretName: "acr-{{ .Values.owner }}acr-{{ .Values.envName }}-pwd"
     email: {{ .Values.email }}
 sf:
@@ -41,6 +44,8 @@ sf:
             vmSize: Standard_DS4
 aks:
     clusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s"
+    resourceGroup: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s"
+    location: "{{ .Values.location }}"
     dnsPrefix: {{ .Values.aksDnsPrefix }}
     servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp"
     servicePrincipalAppId: {{ .Values.aksServicePrincipalAppId }}

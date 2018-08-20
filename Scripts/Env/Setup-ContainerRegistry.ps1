@@ -3,24 +3,28 @@ param([string] $EnvName = "dev")
 $ErrorActionPreference = "Stop"
 Write-Host "Setting up container registry for environment '$EnvName'..."
 
-$scriptFolder = $PSScriptRoot
-if (!$scriptFolder) {
-    $scriptFolder = Get-Location
+$envFolder = $PSScriptRoot
+if (!$envFolder) {
+    $envFolder = Get-Location
 }
-Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
-Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
-Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
-Import-Module "$scriptFolder\..\modules\VaultUtil.psm1" -Force
+$scriptFolder = Join-Path $envFolder "../"
+$moduleFolder = Join-Path $scriptFolder "modules"
+Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
+Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
-$rgName = $bootstrapValues.global.resourceGroup
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$rgName = $bootstrapValues.acr.resourceGroup
+$location = $bootstrapValues.acr.location
+az group create --name $rgName --location $location
 $acrName = $bootstrapValues.acr.name
 $vaultName = $bootstrapValues.kv.name 
 $acrPwdSecretName = $bootstrapValues.acr.passwordSecretName
 Write-Host "Ensure container registry with name '$acrName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
 
 # login to azure 
-LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $scriptFolder
+LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder
 
 # use ACR
 $acrFound = "$(az acr list -g $rgName --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
