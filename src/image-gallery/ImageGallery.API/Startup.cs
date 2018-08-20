@@ -36,7 +36,7 @@ namespace ImageGallery.API
                     {
                         policyBuilder.RequireAuthenticatedUser();
                         policyBuilder.AddRequirements(
-                                new MustOwnImageRequirement());
+                            new MustOwnImageRequirement());
                     });
 
             });

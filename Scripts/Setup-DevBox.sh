@@ -102,6 +102,10 @@ helm install stable/wordpress
 echo "installing terraform..."
 brew install terraform
 
+echo "installing additional terraform providers for aks..."
+curl -L -o - https://github.com/sl1pm4t/terraform-provider-kubernetes/releases/download/v1.0.7-custom/terraform-provider-kubernetes_darwin-amd64.gz | gunzip > terraform-provider-kubernetes
+chmod +x ./terraform-provider-kubernetes
+
 echo "Installing jq..."
 brew install jq
 
