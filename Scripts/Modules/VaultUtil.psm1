@@ -14,7 +14,7 @@ function EnsureCertificateInKeyVault {
         New-Item -Path $credentialFolder -ItemType Directory -Force | Out-Null
         $defaultPolicyFile = Join-Path $credentialFolder "default_policy.json"
         az keyvault certificate get-default-policy -o json | Out-File $defaultPolicyFile -Encoding utf8 
-        az keyvault certificate create -n $CertName --vault-name $vaultName -p @$defaultPolicyFile
+        az keyvault certificate create -n $CertName --vault-name $vaultName -p @$defaultPolicyFile | Out-Null
     }
 }
 
@@ -31,7 +31,7 @@ function DownloadCertFromKeyVault {
     $pemCertFile = Join-Path $credentialFolder "$certName.pem"
     $keyCertFile = Join-Path $credentialFolder "$certName.key"
 
-    LogInfo -Message "Downloading cert '$CertName' from keyvault '$VaultName' and convert it to private key" -ForegroundColor Yellow
+    LogInfo -Message "Downloading cert '$CertName' from keyvault '$VaultName' and convert it to private key" 
     az keyvault secret download --vault-name $VaultName -n $CertName -e base64 -f $pfxCertFile
     openssl pkcs12 -in $pfxCertFile -clcerts -nodes -out $keyCertFile -passin pass:
     openssl rsa -in $keyCertFile -out $pemCertFile

@@ -12,37 +12,48 @@ Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
 Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
-LogTitle -Message "Setting up container registry for environment '$EnvName'..."
+LogTitle -Message "Setting Up Container Registry for Environment '$EnvName'"
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
 $rgName = $bootstrapValues.acr.resourceGroup
 $location = $bootstrapValues.acr.location
-az group create --name $rgName --location $location
+az group create --name $rgName --location $location | Out-Null
 $acrName = $bootstrapValues.acr.name
 $vaultName = $bootstrapValues.kv.name 
 $acrPwdSecretName = $bootstrapValues.acr.passwordSecretName
 LogInfo -Message "Ensure container registry with name '$acrName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
 
-# login to azure 
-LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder
-
 # use ACR
+LogStep -Step 1 -Message "Ensure ACR with name '$acrName' is setup..."
 $acrFound = "$(az acr list -g $rgName --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
 if (!$acrFound) {
     LogInfo -Message "Creating container registry $acrName..."
-    az acr create -g $rgName -n $acrName --sku Basic
+    az acr create -g $rgName -n $acrName --sku Basic | Out-Null
 }
 
-az acr login -n $acrName
-az acr update -n $acrName --admin-enabled true 
+
+# login to azure 
+LogStep -Step 2 -Message "Granting service principal access to ACR..."
+$acrId = "$(az acr show --name $acrName --query id --output tsv)"
+$spnName = $bootstrapValues.global.servicePrincipal
+$spn = az ad sp list --display-name $spnName | ConvertFrom-Json
+az role assignment create --assignee $spn.appId --scope $acrId --role contributor | Out-Null
+
+# NOTE: service principal authentication didn't work with acr after role assignment
+# LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder
+
+
+LogStep -Step 3 -Message "Login ACR '$acrName'"
+az acr login -n $acrName | Out-Null
+az acr update -n $acrName --admin-enabled true | Out-Null
  
 # get ACR username/password
 $acrUsername=$acrName
 $acrPassword = "$(az acr credential show -n $acrName --query ""passwords[0].value"")"
 
+LogStep -Step 4 -Message "Save ACR password with name '$acrPwdSecretName' to KV '$vaultName'"
 LogInfo -Message "ACR $acrName is created with user: $acrUsername and password: $acrPassword"
-
-az keyvault secret set --vault-name $vaultName --name $acrPwdSecretName --value $acrPassword
+az keyvault secret set --vault-name $vaultName --name $acrPwdSecretName --value $acrPassword | Out-Null
 
 <# # No need to assign contributor role (inherited from subscription scope)
 # grant read/write role to service principal 
@@ -53,7 +64,7 @@ $spAppObjId = "$(az ad sp show --id $($bootstrapValues.global.servicePrincipalAp
 az role assignment create --assignee $spAppObjId --scope $acrId --role Reader 
 #>
 
-return @{
-    acrUsername = $acrUsername
-    acrPassword = $acrPassword
-}
+# return @{
+#     acrUsername = $acrUsername
+#     acrPassword = $acrPassword
+# }

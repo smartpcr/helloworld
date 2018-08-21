@@ -7,7 +7,6 @@ global:
     servicePrincipalCertThumbprint: {{ .Values.servicePrincipalCertThumbprint }}
     resourceGroup: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-rg"
     aks: true
-    sf: false
 kv:
     name: "{{ .Values.owner }}-kv"
     resourceGroup: "{{ .Values.owner }}"

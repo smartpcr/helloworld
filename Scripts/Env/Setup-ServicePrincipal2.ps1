@@ -21,7 +21,7 @@ Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
 Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
-LogTitle "Setting up container registry for environment '$EnvName'..." 
+LogTitle "Setting Up Service Principal for Environment $EnvName" 
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $envFolder
 
@@ -33,7 +33,6 @@ $spnName = $bootstrapValues.global.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
 $subscriptionId = $azureAccount.id 
-$env:out_null = "[?n]|[0]"
 
 $devValueYamlFile = "$envFolder\$EnvName\values.yaml"
 $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
@@ -117,7 +116,7 @@ if ($bootstrapValues.global.aks -eq $true) {
     
     # write to values.yaml
     $values.aksServicePrincipalAppId = $aksSpn.appId
-    LogInfo -Message "Granting spn '$aksSpnName' 'Contributor' role to resource group '$($bootstrapValues.aks.resourceGroup)'" -ForegroundColor Yellow
+    LogInfo -Message "Granting spn '$aksSpnName' 'Contributor' role to resource group '$($bootstrapValues.aks.resourceGroup)'" 
     az role assignment create `
         --assignee $aksSpn.appId `
         --role Contributor `
@@ -129,7 +128,7 @@ if ($bootstrapValues.global.aks -eq $true) {
         --object-id $aksSpn.objectId `
         --spn $aksSpn.displayName `
         --certificate-permissions get list update delete `
-        --secret-permissions get list set delete
+        --secret-permissions get list set delete | Out-Null
 }
 
 # write to values.yaml

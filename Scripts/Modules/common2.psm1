@@ -17,14 +17,20 @@ function SetupGlobalEnvironmentVariables() {
 }
 
 function LogVerbose() {
-    param([string] $Message)
+    param(
+        [string] $Message,
+        [int] $IndentLevel = 0)
 
     if (-not (Test-Path $env:LogFile)) {
         New-Item -Path $env:LogFile -ItemType File -Force | Out-Null
     }
 
-    $timeString = (Get-Date).ToString("yyyy-MM-dd-HHmmss");
-    $formattedMessage = "$timeString $Message" + [System.Environment]::NewLine
+    $timeString = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    $formatedMessage = ""
+    for ($i = 0; $i -lt $IndentLevel; $i++) {
+        $formatedMessage = "`t" + $formatedMessage
+    }
+    $formatedMessage += "$timeString $Message"
     Add-Content -Path $env:LogFile -Value $formattedMessage
 }
 
@@ -34,14 +40,14 @@ function LogInfo() {
         [int] $IndentLevel = 1
     )
 
-    $formatedMessage = $Message
+    $formatedMessage = ""
     for ($i = 0; $i -lt $IndentLevel; $i++) {
         $formatedMessage = "`t" + $formatedMessage
     }
-    LogVerbose -Message $formatedMessage
+    $formatedMessage += $Message
+    LogVerbose -Message $formatedMessage -IndentLevel $IndentLevel
 
-    $timeString = (Get-Date).ToString("yyyy-MM-dd-HHmmss");
-    Write-Host "$timeString $formatedMessage" -ForegroundColor Yellow
+    Write-Host $formatedMessage -ForegroundColor Yellow
 }
 
 function LogTitle() {
@@ -128,7 +134,7 @@ function LoginAzureAsUser2 {
     $azAccount = az account show | ConvertFrom-Json
     if ($null -eq $azAccount -or $azAccount.name -ine $SubscriptionName) {
         az login | Out-Null
-        az account set --subscription $SubscriptionName 
+        az account set --subscription $SubscriptionName | Out-Null
     }
 
     $currentAccount = az account show | ConvertFrom-Json
