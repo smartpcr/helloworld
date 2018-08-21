@@ -27,3 +27,4 @@ build/
 target/
 venv/
 *.tfstate.lock.info
+log/

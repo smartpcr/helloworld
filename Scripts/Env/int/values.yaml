@@ -1,8 +1,10 @@
+tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
 envName: int
-servicePrincipalCertThumbprint: D601F820788856798555A2AF2E6A1CFF2ADA1A85
-owner: xdxli
-servicePrincipalAppId: 8e404ae2-d798-48bf-ba63-a9d1a6630470
-aksServicePrincipalAppId: 5993dc02-2d23-4c50-9dcd-d8af010fcbab
+aksServicePrincipalAppId: c4312e85-4a95-4c4e-b5c8-af81747ddf3a
 aksDnsPrefix: hw-aks-xd
-subscriptionName: "BizSpark-xdxli"
-tenantId: 19ebd8a8-ee3e-477c-a9f9-54c8266c2bda
+servicePrincipalCertThumbprint: D601F820788856798555A2AF2E6A1CFF2ADA1A85
+subscriptionName: RRD MSDN Premium
+owner: xdxli
+subscriptionId: 6abf90e5-4af2-4c86-83aa-5352df938db5
+servicePrincipalAppId: 6a942d47-b0cf-4929-bcd6-bb0344dae43f
+
