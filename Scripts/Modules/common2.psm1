@@ -5,7 +5,7 @@ function SetupGlobalEnvironmentVariables() {
     )
 
     $ErrorActionPreference = "Stop"
-    $scriptFolderName = [System.IO.Path]::GetDirectoryName($ScriptFolder)
+    $scriptFolderName = Split-Path $ScriptFolder -Leaf
     if ($null -eq $scriptFolderName -or $scriptFolderName -ne "Scripts") {
         throw "Invalid script folder: '$ScriptFolder'"
     }
@@ -25,7 +25,7 @@ function LogVerbose() {
 
     $timeString = (Get-Date).ToString("yyyy-MM-dd-HHmmss");
     $formattedMessage = "$timeString $Message" + [System.Environment]::NewLine
-    Add-Content -Path $env:LogFile -Value $Message $formattedMessage
+    Add-Content -Path $env:LogFile -Value $formattedMessage
 }
 
 function LogInfo() {
