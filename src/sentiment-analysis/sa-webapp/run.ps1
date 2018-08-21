@@ -1,14 +1,17 @@
 param([string] $EnvName = "dev")
 
+$imageTag = "master-commitId"
+$imageName = "sa-webapp"
+
 $ErrorActionPreference = "Stop"
 Write-Host "Deploy docker image for environment '$EnvName'..." -ForegroundColor Green 
 
-$frontEndAppFolder = $PSScriptRoot
-if (!$frontEndAppFolder) {
-    $frontEndAppFolder = Get-Location
+$webApiFolder = $PSScriptRoot
+if (!$webApiFolder) {
+    $webApiFolder = Get-Location
 }
 
-$ScriptFolder = Join-Path (Split-Path (Split-Path (Split-Path $frontEndAppFolder -Parent) -Parent) -Parent) "Scripts"
+$ScriptFolder = Join-Path (Split-Path (Split-Path (Split-Path $webApiFolder -Parent) -Parent) -Parent) "Scripts"
 $EnvFolder = Join-Path $ScriptFolder "Env"
 $ModuleFolder = Join-Path $ScriptFolder "modules"
 
@@ -27,16 +30,15 @@ if (!$acrLoginServer) {
 }
 
 Write-Host "2) build docker image..."
-Set-Location $frontEndAppFolder
-yarn build 
-$imageTag = "master-commitId"
-$imageName = "sa-frontend"
+Set-Location $webApiFolder
+mvn install
+
 docker build -t "$($imageName):$($imageTag)" .
 docker tag "$($imageName):$($imageTag)" "$($acrLoginServer)/$($imageName):$($imageTag)"
 
-Write-Host "4) publishing image to acr..."
+Write-Host "3) publishing image to acr..."
 az acr login -n $acrName
 docker push "$($acrLoginServer)/$($imageName):$($imageTag)"
 
 Write-Host "4) testing..."
-docker run -d -p 3000:80 "$($acrLoginServer)/$($imageName):$($imageTag)" 
+docker run -d -p 8080:8080 "$($acrLoginServer)/$($imageName):$($imageTag)" 
