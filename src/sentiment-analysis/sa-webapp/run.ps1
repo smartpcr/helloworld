@@ -41,5 +41,7 @@ az acr login -n $acrName
 docker push "$($acrLoginServer)/$($imageName):$($imageTag)"
 
 Write-Host "4) testing..."
-docker run -d -p 8080:8080 --name $imageName "$($acrLoginServer)/$($imageName):$($imageTag)" 
+docker container stop $imageName
+docker container rm $imageName
+docker run -d -p 8080:8080 --name $imageName -e SA_LOGIC_API_URL='http://172.17.0.4:5000' "$($acrLoginServer)/$($imageName):$($imageTag)" 
 docker exec -it $imageName /bin/sh 
