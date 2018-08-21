@@ -1,8 +1,5 @@
 param([string] $EnvName = "dev")
 
-$ErrorActionPreference = "Stop"
-Write-Host "Setting up AKS cluster for environment '$EnvName'..."
-
 $aksProvisionFolder = $PSScriptRoot
 if (!$aksProvisionFolder) {
     $aksProvisionFolder = Get-Location
@@ -15,9 +12,10 @@ Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "TerraformUtil.psm1") -Force
 $envFolder = Join-Path $scriptFolder "Env"
+SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
+LogTitle "Setup AKS Cluster for Environment '$EnvName'"
 
-
-Write-Host "1) Retrieving settings for environment '$EnvName'..." -ForegroundColor Green
+LogStep -Step 1 -Message "Retrieving settings for environment '$EnvName'..."
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
 $akstfvarFile = Join-Path $aksProvisionFolder "terraform.tfvars"
 $credentialFolder = Join-Path $envFolder "credential"
@@ -31,14 +29,17 @@ SetTerraformValue -valueFile $akstfvarFile -name "acr_name" -value $bootstrapVal
 SetTerraformValue -valueFile $akstfvarFile -name "dns_prefix" -value $bootstrapValues.aks.dnsPrefix
 
 
-Write-Host "2) Login as terraform service principal..." -ForegroundColor Green
+LogStep -Step 2 -Message "Login as terraform service principal..."
 $tfsp = az ad sp list --display-name $bootstrapValues.terraform.servicePrincipal | ConvertFrom-Json
+if (!$tfsp) {
+    throw "Terraform is not setup yet. Please run Setup-TerraformAccess.ps1 first"
+}
 $spnPwdSecretName = $bootstrapValues.terraform.servicePrincipalSecretName
 $tfSpPwd = Get-OrCreatePasswordInVault2 -VaultName $bootstrapValues.kv.name -SecretName $spnPwdSecretName
 # az login --service-principal -u "http://$($bootstrapValues.terraform.servicePrincipal)" -p $tfSpPwd.value --tenant $bootstrapValues.global.tenantId
 
 
-Write-Host "3) Retrieve aks service principal..." -ForegroundColor Green
+LogStep -Step 3 -Message "Retrieve aks service principal..." 
 $servicePrincipalPwd = az keyvault secret show `
     --vault-name $bootstrapValues.kv.name `
     --name $bootstrapValues.aks.servicePrincipalPassword | ConvertFrom-Json
@@ -55,7 +56,7 @@ SetTerraformValue -valueFile $akstfvarFile -name "aks_resource_group_name" -valu
 SetTerraformValue -valueFile $akstfvarFile -name "acr_resource_group_name" -value $bootstrapValues.acr.resourceGroup
 
 
-Write-Host "4) Ensure linux ssh key is available..." -ForegroundColor Green
+LogStep -Step 4 -Message "Ensure linux ssh key is available..." 
 EnsureSshCert `
     -VaultName $bootstrapValues.kv.name `
     -CertName $bootstrapValues.aks.ssh_private_key `
@@ -65,12 +66,12 @@ $aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.s
 SetTerraformValue -valueFile $akstfvarFile -name "aks_ssh_public_key" -value $aksCertPublicKeyFile 
 
 
-Write-Host "5) Run terraform provision..." -ForegroundColor Green
+LogStep -Step 5 -Message "Run terraform provision..." 
 terraform init 
 terraform plan -var-file $credentialTfFile
 terraform apply -var-file $credentialTfFile
 # terraform destroy -var-file $credentialTfFile
 
-Write-Host "6) View kubenetes dashboard..." -ForegroundColor Green
+LogStep -Step 6 -Message "View kubenetes dashboard..." 
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
 az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName

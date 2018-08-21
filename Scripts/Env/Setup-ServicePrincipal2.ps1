@@ -138,4 +138,4 @@ $values.tenantId = $azureAccount.tenantId
 $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
-LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder
+# LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder

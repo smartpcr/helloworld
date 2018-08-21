@@ -31,7 +31,7 @@ function LogVerbose() {
         $formatedMessage = "`t" + $formatedMessage
     }
     $formatedMessage += "$timeString $Message"
-    Add-Content -Path $env:LogFile -Value $formattedMessage
+    Add-Content -Path $env:LogFile -Value $formatedMessage
 }
 
 function LogInfo() {

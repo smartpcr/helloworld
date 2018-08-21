@@ -53,18 +53,25 @@ function EnsureSshCert {
     $pubCertName = "$($CertName)-pub"
 
     if (-not (Test-Path $pubCertFile)) {
+        LogInfo -Message "File '$pubCertFile' is not found oon disk"
         $certSecret = az keyvault secret show --vault-name $VaultName --name $CertName | ConvertFrom-Json
         if (!$certSecret) {
+            LogInfo -Message "SSH key password is stored in kv '$VaultName' with name '$pwdName'"
             $pwdName = "$($CertName)-pwd"
             $pwdSecret = Get-OrCreatePasswordInVault2 -VaultName $VaultName -SecretName $pwdName
+            LogInfo -Message "Generating ssh key for linux vm in AKS cluster..."
             ssh-keygen -f $certFile -P $pwdSecret.value 
             
+            LogInfo -Message "Put ssh private key '$CertName' to keyvault '$VaultName'"
             $certPublicString = [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($pubCertFile))
             az keyvault secret set --vault-name $VaultName --name $CertName --value $certPublicString | Out-Null
+
+            LogInfo -Message "Put ssh public key '$pubCertName' to keyvault '$VaultName'"
             $certPrivateString = [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($certFile))
             az keyvault secret set --vault-name $VaultName --name $pubCertName --value $certPrivateString | Out-Null
         }
         else {
+            LogInfo -Message "Found ssh public key '$pubCertName' within keyvault '$VaultName'. Download it to file '$pubCertFile'"
             $pubCertSecret = az keyvault secret show --vault-name $VaultName --name $pubCertName | ConvertFrom-Json
             [System.IO.File]::WriteAllBytes($pubCertFile, [System.Convert]::FromBase64String($pubCertSecret.value))
         }
