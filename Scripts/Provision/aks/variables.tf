@@ -1,4 +1,18 @@
+variable subscription_id {
+  description = "ID of azure subscription"
+}
 
+variable tenant_id {
+  description = "ID of AAD directory tenant"
+}
+
+variable client_id {
+  description = "Application Id of terraform service principal"
+}
+
+variable client_secret {
+  description = "Password of terraform service principal"
+}
 
 variable "location" {
   type = "string"
@@ -6,15 +20,15 @@ variable "location" {
 }
 
 
-variable "service_principal_id" {
+variable "aks_service_principal_app_id" {
   type = "string"
 }
 
-variable "service_principal_password" {
+variable "aks_service_principal_password" {
   type = "string"
 }
 
-variable "ssh_public_key" {
+variable "aks_ssh_public_key" {
   type = "string"
 }
 
@@ -36,18 +50,9 @@ variable "tags" {
   type = "map"
 
   default = {
-    Environment = "Demo"
-    Responsible = "Thorsten Hans"
+    Environment = "dev"
+    Responsible = "Xiaodong Li"
   }
-}
-
-variable "acr_name" {
-  type = "string"
-}
-
-variable "acr_sku" {
-  type    = "string"
-  default = "Basic"
 }
 
 variable "aks_name" {

@@ -1,4 +1,9 @@
-provider "azurerm" {}
+provider "azurerm" {
+  client_id = "${var.client_id}"
+  client_secret = "${var.client_secret}"
+  tenant_id = "${var.tenant_id}"
+  subscription_id = "${var.subscription_id}"
+}
 
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group_name}"
@@ -12,15 +17,6 @@ resource "azurerm_resource_group" "rg-aks" {
   tags     = "${var.tags}"
 }
 
-resource "azurerm_container_registry" "acr" {
-  name                = "${var.acr_name}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location            = "${azurerm_resource_group.rg.location}"
-  admin_enabled       = false
-  sku                 = "${var.acr_sku}"
-  tags                = "${var.tags}"
-}
-
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = "${var.aks_name}"
   location            = "${azurerm_resource_group.rg.location}"
@@ -31,7 +27,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
     admin_username = "azureuser"
 
     ssh_key {
-      key_data = "${file("${var.ssh_public_key}")}"
+      key_data = "${file("${var.aks_ssh_public_key}")}"
     }
   }
 
@@ -45,8 +41,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   service_principal {
-    client_id     = "${var.service_principal_id}"
-    client_secret = "${var.service_principal_password}"
+    client_id     = "${var.aks_service_principal_app_id}"
+    client_secret = "${var.aks_service_principal_password}"
   }
 
   tags = "${var.tags}"

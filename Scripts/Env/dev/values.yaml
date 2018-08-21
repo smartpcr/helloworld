@@ -1,14 +1,13 @@
 ﻿envName: dev4
-email: xiaodoli@microsoft.com
-servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
-aksDnsPrefix: hw-aks-xd
 owner: xiaodoli
+aksDnsPrefix: hw-aks-xd
+subscriptionId: c6f1efb8-906b-437e-99b4-e1f0881ec8d2
+aksServicePrincipalAppId: 41ade730-36f4-4e12-a1f6-d05ecc8ec74c
+servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
+email: xiaodoli@microsoft.com
 tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
 subscriptionName: RRD MSDN Ultimate
-servicePrincipalAppId: 9bdad60f-ef13-45c3-9373-ec6e8d5f978d
-subscriptionId: c6f1efb8-906b-437e-99b4-e1f0881ec8d2
-aksServicePrincipalAppId: 301f388c-e1a9-4bdd-8605-8e959c83752c
-terraformStorageAccountName: "rrdtfstate"
-terraformBlobContainerName: "tfstate"
+servicePrincipalAppId: 84bb5cf7-232d-44b6-9faa-48372752e48a
+
 helmStorageAccountName: "rrdhelm"
 helmBlobContainerName: "helm"

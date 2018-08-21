@@ -81,3 +81,28 @@ function Set-Values {
 
     return $valueTemplate
 }
+
+function ReplaceValuesInYamlFile {
+    param(
+        [string] $YamlFile,
+        [string] $PlaceHolder,
+        [string] $Value 
+    )
+
+    $content = ""
+    if (Test-Path $YamlFile) {
+        $content = Get-Content $YamlFile 
+    }
+
+    $pattern = "{{ .Values.$PlaceHolder }}"
+    $buffer = New-Object System.Text.StringBuilder
+    $content | ForEach-Object {
+        $line = $_ 
+        if ($line) {
+            $line = $line.Replace($pattern, $Value)
+            $buffer.AppendLine($line) | Out-Null
+        }
+    }
+    $buffer.AppendLine($replaceValue) | Out-Null
+    $buffer.ToString() | Out-File $YamlFile -Encoding ascii
+}

@@ -10,100 +10,125 @@
 #>
 param([string] $EnvName = "dev")
 
-$ErrorActionPreference = "Stop"
-Write-Host "Setting up container registry for environment '$EnvName'..."
 
-$scriptFolder = $PSScriptRoot
-if (!$scriptFolder) {
-    $scriptFolder = Get-Location
+$envFolder = $PSScriptRoot
+if (!$envFolder) {
+    $envFolder = Get-Location
 }
-Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
-Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
-Import-Module "$scriptFolder\..\modules\VaultUtil.psm1" -Force
+$scriptFolder = Split-Path $envFolder -Parent
+$moduleFolder = Join-Path $scriptFolder "modules"
+Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
+Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
+SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
+LogTitle "Setting Up Service Principal for Environment $EnvName" 
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $envFolder
 
 # login and set subscription 
+LogStep -Step 1 -Message "Login to azure and set subscription to '$($bootstrapValues.global.subscriptionName)'..." 
 $azureAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
 
 $spnName = $bootstrapValues.global.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
 $subscriptionId = $azureAccount.id 
-$env:out_null = "[?n]|[0]"
 
-$devValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+$devValueYamlFile = "$envFolder\$EnvName\values.yaml"
 $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
 
 # create resource group 
+LogStep -Step 2 -Message "Creating resource group '$($rgName)' at location '$($bootstrapValues.global.location)'..."
 $rgGroups = az group list --query "[?name=='$rgName']" | ConvertFrom-Json
 if (!$rgGroups -or $rgGroups.Count -eq 0) {
-    Write-Host "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
-    az group create --name $rgName --location $bootstrapValues.global.location 
+    LogInfo -Message "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
+    az group create --name $rgName --location $bootstrapValues.global.location | Out-Null
 }
 
 # create key vault 
-$kvs = az keyvault list --resource-group $rgName --query "[?name=='$vaultName']" | ConvertFrom-Json
+LogStep -Step 3 -Message "Creating key vault '$vaultName' within resource group '$($bootstrapValues.kv.resourceGroup)' at location '$($bootstrapValues.kv.location)'..."
+$kvrg = az group list --query "[?name=='$($bootstrapValues.kv.resourceGroup)']" | ConvertFrom-Json
+if (!$kvrg) {
+    az group create --name $bootstrapValues.kv.resourceGroup --location $bootstrapValues.kv.location | Out-Null
+}
+$kvs = az keyvault list --resource-group $bootstrapValues.kv.resourceGroup --query "[?name=='$vaultName']" | ConvertFrom-Json
 if ($kvs.Count -eq 0) {
-    Write-Host "Creating Key Vault $vaultName..."
+    LogInfo -Message "Creating Key Vault $vaultName..." 
     
     az keyvault create `
-        --resource-group $rgName `
+        --resource-group $bootstrapValues.kv.resourceGroup `
         --name $vaultName `
         --sku standard `
         --location $bootstrapValues.global.location `
         --enabled-for-deployment $true `
         --enabled-for-disk-encryption $true `
-        --enabled-for-template-deployment $true 
+        --enabled-for-template-deployment $true | Out-Null
 }
 else {
-    Write-Host "Key vault $($vaultName) is already created"
+    LogInfo -Message "Key vault $($vaultName) is already created" 
 }
 
 # create service principal (SPN) for cluster provision
+LogStep -Step 4 -Message "Creating service principal '$($spnName)'..." 
 $sp = az ad sp list --display-name $spnName | ConvertFrom-Json
 if (!$sp) {
-    Write-Host "Creating service principal with name '$spnName'..."
+    LogInfo -Message "Creating service principal with name '$spnName'..." 
 
     $certName = $spnName
-    EnsureCertificateInKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $scriptFolder
+    EnsureCertificateInKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $envFolder
     
-    az ad sp create-for-rbac -n $spnName --role contributor --keyvault $vaultName --cert $certName 
+    az ad sp create-for-rbac -n $spnName --role contributor --keyvault $vaultName --cert $certName | Out-Null
     $sp = az ad sp list --display-name $spnName | ConvertFrom-Json
-    az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$subscriptionId"
+    LogInfo -Message "Granting spn '$spnName' 'contributor' role to subscription" 
+    az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$subscriptionId" | Out-Null
 
+    LogInfo -Message "Granting spn '$spnName' permissions to keyvault '$vaultName'" 
     az keyvault set-policy `
         --name $vaultName `
-        --resource-group $rgName `
+        --resource-group $bootstrapValues.kv.resourceGroup `
         --object-id $sp.objectId `
         --spn $sp.displayName `
         --certificate-permissions get list update delete `
-        --secret-permissions get list set delete
+        --secret-permissions get list set delete | Out-Null
 }
 else {
-    Write-Host "Service principal '$spnName' already exists."
+    LogInfo -Message "Service principal '$spnName' already exists." 
 }
 
 
 if ($bootstrapValues.global.aks -eq $true) {
+    LogStep -Step 5 -Message "Creating AKS service principal '$($bootstrapValues.aks.servicePrincipal)'..." 
+    $aksrg = az group list --query "[?name=='$($bootstrapValues.aks.resourceGroup)']" | ConvertFrom-Json
+    if (!$aksrg) {
+        az group create --name $bootstrapValues.aks.resourceGroup --location $bootstrapValues.aks.location | Out-Null
+    }
+
     $aksSpnName = $bootstrapValues.aks.servicePrincipal
     $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
     $aksSpn = Get-OrCreateServicePrincipalUsingPassword2 `
         -ServicePrincipalName $aksSpnName `
         -ServicePrincipalPwdSecretName $askSpnPwdSecretName `
         -VaultName $vaultName `
-        -ScriptFolder $scriptFolder `
+        -ScriptFolder $envFolder `
         -EnvName $EnvName
+    
     $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
     
     # write to values.yaml
     $values.aksServicePrincipalAppId = $aksSpn.appId
-
-    Grant-ServicePrincipalPermissions `
-        -servicePrincipalId $aksSpn.Id `
-        -subscriptionId $rmContext.Subscription.Id `
-        -resourceGroupName $rgName `
-        -vaultName $vaultName
+    LogInfo -Message "Granting spn '$aksSpnName' 'Contributor' role to resource group '$($bootstrapValues.aks.resourceGroup)'" 
+    az role assignment create `
+        --assignee $aksSpn.appId `
+        --role Contributor `
+        --resource-group $bootstrapValues.aks.resourceGroup | Out-Null
+    LogInfo -Message "Granting spn '$aksSpnName' permissions to keyvault '$vaultName'" 
+    az keyvault set-policy `
+        --name $vaultName `
+        --resource-group $bootstrapValues.kv.resourceGroup `
+        --object-id $aksSpn.objectId `
+        --spn $aksSpn.displayName `
+        --certificate-permissions get list update delete `
+        --secret-permissions get list set delete | Out-Null
 }
 
 # write to values.yaml
@@ -113,4 +138,4 @@ $values.tenantId = $azureAccount.tenantId
 $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
-Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $scriptFolder
+# LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder

@@ -1,0 +1,1 @@
+The code is from [kevin Dockx](https://github.com/KevinDockx/SecuringAspNetCore2WithOAuth2AndOIDC)'s Pluralgiths Course: [Secure ASP.NET Core With OAuth2 and OIDC](https://app.pluralsight.com/library/courses/securing-aspdotnet-core2-oauth2-openid-connect/table-of-contents)

@@ -1,0 +1,59 @@
+# Default values for CustomServiceName.
+# Declare variables to be passed into your templates.
+#
+# The following values are appended by pack.sh during builds through OneBranch Pipeline:
+#  - imageRegistry: The FQDN of the docker registry to pull the CustomServiceName image from.
+#  - imageName: The repository name + tag for the CustomServiceName docker image.
+
+replicaCount: 3
+
+imagePullPolicy: IfNotPresent
+
+# If not specified then AKS will attempt to use its service principal to authenticate with ACR.
+imageUsername: null
+imagePassword: null
+
+aspNetCoreUrls: http://*:80
+containerPort: 80
+
+serviceType: ClusterIP
+servicePort: 80
+
+ingressEnabled: true
+ingressAnnotations: {}
+ingressPath: /
+ingressTlsHostDomain: customservice.io
+
+ingressCaCrt: null
+ingressTlsCrt: null
+ingressTlsKey: null
+
+documentDatabases:
+  eus:
+    id: null
+    endpointUrl: null
+    databaseId: customservice
+  wus:
+    id: null
+    endpointUrl: null
+    databaseId: customservice
+
+databaseAuthorizationKeys:
+  eus: null
+  wus: null
+
+# Pass values to the nginx-ingress chart.
+# See: https://github.com/kubernetes/charts/tree/master/stable/nginx-ingress#configuration
+nginx-ingress:
+  controller:
+    replicaCount: 2
+    minAvailable: 1
+  defaultBackend:
+    replicaCount: 2
+    minAvailable: 1
+
+# Authenticate with the CDPx container registry using the AKS cluster's service principal.
+# imagePassword is set in Deploy.sh.
+#
+# Bug 2541793: Why isn't AKS using these credentials automatically when no imagePullSecret is specified?
+imageUsername: null

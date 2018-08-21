@@ -11,16 +11,19 @@
 param([string] $EnvName = "dev")
 
 $ErrorActionPreference = "Stop"
-Write-Host "Setting up container registry for environment '$EnvName'..."
 
-$scriptFolder = $PSScriptRoot
-if (!$scriptFolder) {
-    $scriptFolder = Get-Location
+$envFolder = $PSScriptRoot
+if (!$envFolder) {
+    $envFolder = Get-Location
 }
-Import-Module "$scriptFolder\..\modules\common2.psm1" -Force
-Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
-Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
-Import-Module "$scriptFolder\..\modules\VaultUtil.psm1" -Force
+$scriptFolder = Split-Path $envFolder -Parent
+$moduleFolder = Join-Path $scriptFolder "modules"
+Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
+Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
+SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
+LogTitle -Message "Setting up container registry for environment '$EnvName'..."
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
 $rgName = $bootstrapValues.global.resourceGroup
@@ -33,7 +36,7 @@ $aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
 
 # login to azure 
-Connect-ToAzure2 -EnvName $EnvName -ScriptFolder $scriptFolder
+LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $scriptFolder
 
 $aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
 

@@ -4,26 +4,40 @@ function SetTerraformValue {
         [string] $name, 
         [string] $value)
 
-    $content = Get-Content $valueFile 
+    $content = ""
+    if (Test-Path $valueFile) {
+        $content = Get-Content $valueFile 
+    }
+    
     $regex = New-Object System.Text.RegularExpressions.Regex("$name\s*=\s*""?([^""]*)\""?")
     $replaceValue = "$name = ""$value"""
     $buffer = New-Object System.Text.StringBuilder
 
-    $match = $regex.Match($content)
-    if ($match.Success) {
-        $content | ForEach-Object {
-            $line = $_ 
-            if ($line -and $line.Length -gt 0) {
-                $line = $regex.Replace($line, $replaceValue)
-                $buffer.AppendLine($line) | Out-Null
-            }
-        }
+    if ($null -eq $content -or $content.Trim().Length -eq 0) {
+        $buffer.AppendLine($replaceValue) | Out-Null
     }
     else {
-        $buffer.AppendLine($content)
-        $buffer.AppendLine($replaceValue)
+        $match = $regex.Match($content)
+        if ($match.Success) {
+            $content | ForEach-Object {
+                $line = $_ 
+            if ($line -and $line.Length -gt 0) {
+                    $line = $regex.Replace($line, $replaceValue)
+                    $buffer.AppendLine($line) | Out-Null
+                }
+            }
+        }
+        else {
+            $content | ForEach-Object {
+                $line = $_ 
+                if ($line) {
+                    $buffer.AppendLine($line) | Out-Null
+                }
+            }
+            $buffer.AppendLine($replaceValue) | Out-Null
+        }
     }
 
-    $buffer.ToString().Trim() | Out-File $valueFile -Encoding ascii
+    $buffer.ToString().TrimEnd() | Out-File $valueFile
     terraform fmt $valueFile
 }

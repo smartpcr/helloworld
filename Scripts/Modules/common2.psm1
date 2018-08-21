@@ -1,5 +1,75 @@
-$env:out_null = "[?n]|[0]"
 
+function SetupGlobalEnvironmentVariables() {
+    param(
+        [string] $ScriptFolder
+    )
+
+    $ErrorActionPreference = "Stop"
+    $scriptFolderName = Split-Path $ScriptFolder -Leaf
+    if ($null -eq $scriptFolderName -or $scriptFolderName -ne "Scripts") {
+        throw "Invalid script folder: '$ScriptFolder'"
+    }
+    $logFolder = Join-Path $ScriptFolder "log"
+    New-Item -Path $logFolder -ItemType Directory -Force | Out-Null
+    $timeString = (Get-Date).ToString("yyyy-MM-dd-HHmmss")
+    $logFile = Join-Path $logFolder "$($timeString).log"
+    $env:LogFile = $logFile
+}
+
+function LogVerbose() {
+    param(
+        [string] $Message,
+        [int] $IndentLevel = 0)
+
+    if (-not (Test-Path $env:LogFile)) {
+        New-Item -Path $env:LogFile -ItemType File -Force | Out-Null
+    }
+
+    $timeString = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    $formatedMessage = ""
+    for ($i = 0; $i -lt $IndentLevel; $i++) {
+        $formatedMessage = "`t" + $formatedMessage
+    }
+    $formatedMessage += "$timeString $Message"
+    Add-Content -Path $env:LogFile -Value $formatedMessage
+}
+
+function LogInfo() {
+    param(
+        [string] $Message,
+        [int] $IndentLevel = 1
+    )
+
+    $formatedMessage = ""
+    for ($i = 0; $i -lt $IndentLevel; $i++) {
+        $formatedMessage = "`t" + $formatedMessage
+    }
+    $formatedMessage += $Message
+    LogVerbose -Message $formatedMessage -IndentLevel $IndentLevel
+
+    Write-Host $formatedMessage -ForegroundColor Yellow
+}
+
+function LogTitle() {
+    param(
+        [string] $Message
+    )
+
+    Write-Host "`n"
+    Write-Host "`t`t***** $Message *****" -ForegroundColor Green
+    Write-Host "`n"
+}
+
+function LogStep() {
+    param(
+        [string] $Message,
+        [int] $Step
+    )
+
+    $formatedMessage = "$Step) $Message"
+    LogVerbose -Message $formatedMessage
+    Write-Host "$formatedMessage" -ForegroundColor Green
+}
 
 function Get-OrCreatePasswordInVault2 { 
     param(
@@ -30,9 +100,11 @@ function Get-OrCreateServicePrincipalUsingPassword2 {
         [string] $EnvName
     )
 
-    $spFound =  az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
+    $spFound = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     if ($spFound) {
-        return $sp;
+        az ad sp credential reset --name $ServicePrincipalName --password $servicePrincipalPwd.value 
+        return $sp
     }
 
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
@@ -42,8 +114,12 @@ function Get-OrCreateServicePrincipalUsingPassword2 {
     $subscriptionId = $azAccount.id
     $scopes = "/subscriptions/$subscriptionId/resourceGroups/$($rgName)"
     
-    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
-    az ad sp create-for-rbac --name $ServicePrincipalName --password $($servicePrincipalPwd.value) --role="Contributor" --scopes=$scopes 
+    LogInfo -Message "Granting spn '$ServicePrincipalName' 'Contributor' role to resource group '$rgName'"
+    az ad sp create-for-rbac `
+        --name $ServicePrincipalName `
+        --password $($servicePrincipalPwd.value) `
+        --role="Contributor" `
+        --scopes=$scopes | Out-Null
     
     $sp = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     return $sp 
@@ -55,19 +131,17 @@ function LoginAzureAsUser2 {
         [string] $SubscriptionName
     )
     
-    # $currentAccount = az account show | ConvertFrom-Json
-    # if ($currentAccount -and $currentAccount.name -eq $SubscriptionName) {
-    #     return $currentAccount
-    # }
+    $azAccount = az account show | ConvertFrom-Json
+    if ($null -eq $azAccount -or $azAccount.name -ine $SubscriptionName) {
+        az login | Out-Null
+        az account set --subscription $SubscriptionName | Out-Null
+    }
 
-    az login
-    az account set --subscription $SubscriptionName 
     $currentAccount = az account show | ConvertFrom-Json
-
     return $currentAccount
 }
 
-function Connect-ToAzure2 {
+function LoginAsServicePrincipal {
     param (
         [string] $EnvName = "dev",
         [string] $ScriptFolder
@@ -79,10 +153,12 @@ function Connect-ToAzure2 {
     $certName = $spnName
     $tenantId = $bootstrapValues.global.tenantId
 
-    $privateKeyFilePath = "$ScriptFolder\credential\$certName.key"
+    $privateKeyFilePath = "$ScriptFolder/credential/$certName.key"
     if (-not (Test-Path $privateKeyFilePath)) {
+        LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
         DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
     }
     
-    az login --service-principal -u "http://$spnName" -p $privateKeyFilePath --tenant $tenantId
+    LogInfo -Message "Login as service principal '$spnName'"
+    az login --service-principal -u "http://$spnName" -p $privateKeyFilePath --tenant $tenantId | Out-Null
 }

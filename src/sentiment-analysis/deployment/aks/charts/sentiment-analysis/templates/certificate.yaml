@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-cert
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ .Values.ingressCaCrt }}
+  tls.crt: {{ .Values.ingressTlsCrt }}
+  tls.key: {{ .Values.ingressTlsKey }}
