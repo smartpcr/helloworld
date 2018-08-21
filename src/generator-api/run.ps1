@@ -30,7 +30,7 @@ dotnet restore generator-api.csproj
 dotnet build generator-api.csproj
 dotnet publish generator-api.csproj
 $imageTag = "master-commitId"
-$imageName = "generator-api"
+$imageName = "generator-api"    
 docker build -t "$($imageName):$($imageTag)" .
 docker tag "$($imageName):$($imageTag)" "$($acrLoginServer)/$($imageName):$($imageTag)"
 
