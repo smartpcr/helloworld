@@ -17,15 +17,6 @@ resource "azurerm_resource_group" "rg-aks" {
   tags     = "${var.tags}"
 }
 
-resource "azurerm_container_registry" "acr" {
-  name                = "${var.acr_name}"
-  resource_group_name = "${var.acr_resource_group_name}"
-  location            = "${azurerm_resource_group.rg.location}"
-  admin_enabled       = false
-  sku                 = "${var.acr_sku}"
-  tags                = "${var.tags}"
-}
-
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = "${var.aks_name}"
   location            = "${azurerm_resource_group.rg.location}"

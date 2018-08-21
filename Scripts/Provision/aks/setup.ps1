@@ -1,18 +1,19 @@
 param([string] $EnvName = "dev")
 
 $ErrorActionPreference = "Stop"
-Write-Host "Setting up container registry for environment '$EnvName'..."
+Write-Host "Setting up AKS cluster for environment '$EnvName'..."
 
 $aksProvisionFolder = $PSScriptRoot
 if (!$aksProvisionFolder) {
     $aksProvisionFolder = Get-Location
 }
-$scriptFolder = "$aksProvisionFolder/../.." 
-Import-Module "$scriptFolder/modules/YamlUtil.psm1" -Force
-Import-Module "$scriptFolder/modules/common2.psm1" -Force
-Import-Module "$scriptFolder/modules/CertUtil.psm1" -Force
-Import-Module "$scriptFolder/modules/VaultUtil.psm1" -Force
-Import-Module "$scriptFolder/modules/TerraformUtil.psm1" -Force
+$scriptFolder = Split-Path (Split-Path $aksProvisionFolder -Parent) -Parent
+$moduleFolder = Join-Path $scriptFolder "modules"
+Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
+Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "TerraformUtil.psm1") -Force
 $envFolder = Join-Path $scriptFolder "Env"
 
 
@@ -23,8 +24,8 @@ $credentialFolder = Join-Path $envFolder "credential"
 $envCredentialFolder = Join-Path $credentialFolder $EnvName
 $credentialTfFile = Join-Path $envCredentialFolder "aks.tfvars"
 SetTerraformValue -valueFile $akstfvarFile -name "resource_group_name" -value $bootstrapValues.global.resourceGroup
-SetTerraformValue -valueFile $akstfvarFile -name "location" -value $bootstrapValues.global.location
-SetTerraformValue -valueFile $akstfvarFile -name "aks_resource_group_name" -value $bootstrapValues.global.resourceGroup
+SetTerraformValue -valueFile $akstfvarFile -name "location" -value $bootstrapValues.aks.location
+SetTerraformValue -valueFile $akstfvarFile -name "aks_resource_group_name" -value $bootstrapValues.aks.resourceGroup
 SetTerraformValue -valueFile $akstfvarFile -name "aks_name" -value $bootstrapValues.aks.clusterName
 SetTerraformValue -valueFile $akstfvarFile -name "acr_name" -value $bootstrapValues.acr.name
 SetTerraformValue -valueFile $akstfvarFile -name "dns_prefix" -value $bootstrapValues.aks.dnsPrefix
@@ -61,11 +62,15 @@ EnsureSshCert `
     -EnvName $EnvName `
     -ScriptFolder $scriptFolder
 $aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.ssh_private_key).pub"
-
 SetTerraformValue -valueFile $akstfvarFile -name "aks_ssh_public_key" -value $aksCertPublicKeyFile 
+
 
 Write-Host "5) Run terraform provision..." -ForegroundColor Green
 terraform init 
 terraform plan -var-file $credentialTfFile
 terraform apply -var-file $credentialTfFile
 # terraform destroy -var-file $credentialTfFile
+
+Write-Host "6) View kubenetes dashboard..." -ForegroundColor Green
+az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName

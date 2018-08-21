@@ -49,10 +49,11 @@ function EnsureSshCert {
     New-Item $credentialFolder -ItemType Directory -Force | Out-Null
     $certFile = Join-Path $credentialFolder $CertName
     $pubCertFile = "$certFile.pub"
+    $pubCertName = "$($CertName)-pub"
+
     if (-not (Test-Path $pubCertFile)) {
         $certSecret = az keyvault secret show --vault-name $VaultName --name $CertName | ConvertFrom-Json
         if (!$certSecret) {
-            $pubCertName = "$($CertName)-pub"
             $pwdName = "$($CertName)-pwd"
             $pwdSecret = Get-OrCreatePasswordInVault2 -VaultName $VaultName -SecretName $pwdName
             ssh-keygen -f $certFile -P $pwdSecret.value 
