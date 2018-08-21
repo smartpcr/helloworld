@@ -16,7 +16,6 @@ The service principal will have contributor to the subscription and KV CRUD perm
 1. remote state
 
 terraform state is divided into dev, test, and prod environment. States are stored in the following azure resources:
-lock table: cosmosdb
 tfstates: blob storage
 
 Ideally, each environment should be provisioned using different service principal and their scopes limited to different subscription/group. But for PoC, we will only use one service principal to provision all environments
@@ -32,4 +31,4 @@ terraform uses external data source to retrieve KV secrets (powershell). This is
     - terraform uses the same service principal to create cluster
     - AKS also have its own service principal (with password) authentication and connect to cluster
     - each namespace should have its own service principal for RBAC-based isolation and roleBinding
-    - 
+- DNS, TrafficManager

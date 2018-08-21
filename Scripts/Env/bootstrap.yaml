@@ -26,6 +26,9 @@ acr:
     name: "{{ .Values.owner }}acr{{ .Values.envName }}"
     passwordSecretName: "acr-{{ .Values.owner }}acr-{{ .Values.envName }}-pwd"
     email: {{ .Values.email }}
+helm: 
+    storageAccountName: "{{ .Values.helmStorageAccountName }}"
+    blobContainerName: "{{ .Values.helmBlobContainerName }}"
 sf:
     serviceFabricClusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf"
     managementCert:
