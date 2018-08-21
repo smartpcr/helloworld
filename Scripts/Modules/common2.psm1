@@ -30,9 +30,11 @@ function Get-OrCreateServicePrincipalUsingPassword2 {
         [string] $EnvName
     )
 
+    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
     $spFound =  az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     if ($spFound) {
-        return $sp;
+        az ad sp credential reset --name $ServicePrincipalName --password $servicePrincipalPwd.value 
+        return $sp
     }
 
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
@@ -42,7 +44,6 @@ function Get-OrCreateServicePrincipalUsingPassword2 {
     $subscriptionId = $azAccount.id
     $scopes = "/subscriptions/$subscriptionId/resourceGroups/$($rgName)"
     
-    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
     az ad sp create-for-rbac --name $ServicePrincipalName --password $($servicePrincipalPwd.value) --role="Contributor" --scopes=$scopes 
     
     $sp = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json

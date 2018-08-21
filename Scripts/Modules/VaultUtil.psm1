@@ -45,24 +45,26 @@ function EnsureSshCert {
     )
 
     $EnvFolder = Join-Path $ScriptFolder "Env"
-    $credentialFolder = Join-Path (Join-Path $EnvFolder $EnvName) "credential"
+    $credentialFolder = Join-Path (Join-Path $EnvFolder "credential") $EnvName
+    New-Item $credentialFolder -ItemType Directory -Force | Out-Null
     $certFile = Join-Path $credentialFolder $CertName
-    if (-not (Test-Path $certFile)) {
+    $pubCertFile = "$certFile.pub"
+    if (-not (Test-Path $pubCertFile)) {
         $certSecret = az keyvault secret show --vault-name $VaultName --name $CertName | ConvertFrom-Json
         if (!$certSecret) {
             $pubCertName = "$($CertName)-pub"
             $pwdName = "$($CertName)-pwd"
-            $pubCertFile = Join-Path $credentialFolder $pubCertName
-        
             $pwdSecret = Get-OrCreatePasswordInVault2 -VaultName $VaultName -SecretName $pwdName
             ssh-keygen -f $certFile -P $pwdSecret.value 
-            $certPemString = ssh-keygen -f $certFile -e -m pem 
-            $certPemString | Out-File $pubCertFile
-
+            
             $certPublicString = [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($pubCertFile))
-            az keyvault secret set --vault-name $VaultName --name $CertName --value $certPublicString
+            az keyvault secret set --vault-name $VaultName --name $CertName --value $certPublicString | Out-Null
             $certPrivateString = [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($certFile))
-            az keyvault secret set --vault-name $VaultName --name $pubCertName --value $certPrivateString
+            az keyvault secret set --vault-name $VaultName --name $pubCertName --value $certPrivateString | Out-Null
+        }
+        else {
+            $pubCertSecret = az keyvault secret show --vault-name $VaultName --name $pubCertName | ConvertFrom-Json
+            [System.IO.File]::WriteAllBytes($pubCertFile, [System.Convert]::FromBase64String($pubCertSecret.value))
         }
     }
 }
