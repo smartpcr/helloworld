@@ -17,6 +17,11 @@ Release/
 .DS_Store
 node_modules/
 package-lock.json
+yarn.lock
 .vs/
 .idea/
 .user
+node_modules/
+build/
+.idea/
+target/
