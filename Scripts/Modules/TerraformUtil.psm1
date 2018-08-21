@@ -38,6 +38,6 @@ function SetTerraformValue {
         }
     }
 
-    $buffer.ToString().TrimEnd() | Out-File $valueFile
-    terraform fmt $valueFile
+    $buffer.ToString().TrimEnd() | Out-File $valueFile -Encoding ascii
+    terraform fmt $valueFile | Out-Null
 }

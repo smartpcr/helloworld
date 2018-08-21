@@ -36,7 +36,7 @@ if (-not (Test-Path $secretValueFile)) {
     New-Item -Path $secretValueFile -ItemType File -Force | Out-Null
 }
 SetTerraformValue -valueFile $secretValueFile -name "tenant_id" -value $tenantId
-$stateValueFile = Join-Path $provisionFolder "state/main.tf"
+$stateValueFile = Join-Path (Join-Path $provisionFolder "backend") "main.tf"
 SetTerraformValue -valueFile $stateValueFile -name "resource_group_name" -value $rgName
 
 
@@ -89,7 +89,7 @@ az role assignment create --assignee $tfSp.appId --scope $acrId --role contribut
 # az login --service-principal -u "http://$spnName" -p $tfSpPwd.value --tenant $tenantId
 
 LogStep -Step 4 -Message "Ensure storage account exist for tf state..." 
-
+$tfStorageAccessKey = $null 
 $storageAccount = az storage account show `
     --name $bootstrapValues.terraform.stateStorageAccountName `
     --resource-group $bootstrapValues.terraform.resourceGroup | ConvertFrom-Json
@@ -103,7 +103,8 @@ if (!$storageAccount) {
     $storageKeys = az storage account keys list `
         -n $bootstrapValues.terraform.stateStorageAccountName `
         -g $bootstrapValues.terraform.resourceGroup | ConvertFrom-Json
-    SetTerraformValue -valueFile $secretValueFile -name "terraform_storage_access_key" -value $storageKeys[0].value
+    $tfStorageAccessKey = $storageKeys[0].value
+    SetTerraformValue -valueFile $secretValueFile -name "terraform_storage_access_key" -value $tfStorageAccessKey
 
     LogInfo -Message "Creating container '$($bootstrapValues.terraform.stateBlobContainerName)' for blob storage..."
     az storage container create `
@@ -113,6 +114,11 @@ if (!$storageAccount) {
 }
 else {
     LogInfo -Message "Storage account '$($bootstrapValues.terraform.stateStorageAccountName)' already exists."
+    $storageKeys = az storage account keys list `
+        -n $bootstrapValues.terraform.stateStorageAccountName `
+        -g $bootstrapValues.terraform.resourceGroup | ConvertFrom-Json
+    $tfStorageAccessKey = $storageKeys[0].value
+    SetTerraformValue -valueFile $secretValueFile -name "terraform_storage_access_key" -value $tfStorageAccessKey
 }
 
 SetTerraformValue -valueFile $stateValueFile -name "storage_account_name" -value $bootstrapValues.terraform.stateStorageAccountName
@@ -121,7 +127,7 @@ SetTerraformValue -valueFile $stateValueFile -name "storage_account_name" -value
 
 
 LogStep -Step 5 -Message "Run terraform provisioning..."
-$terraformStateFolder = Join-Path $provisionFolder "state"
+$terraformStateFolder = Join-Path $provisionFolder "backend"
 Set-Location $terraformStateFolder
 terraform init -upgrade -backend-config="access_key=$tfStorageAccessKey"
 terraform plan -var-file ./terraform.tfvars -var-file $secretValueFile
