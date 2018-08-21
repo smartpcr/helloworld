@@ -1,0 +1,25 @@
+ingressTlsHostDomain: sa-xiaodoli.io
+
+documentDatabase:
+  eus:
+    id: eastus.sa-xiaodolisvcs-test.io
+    endpointUrl: https://sa-xiaodoli-dogfoot-eus.documents.azure.com
+    databaseId: sa-xiaodoli
+  wus:
+    id: westus.sa-xiaodolisvcs-test.io
+    endpointUrl: https://sa-xiaodoli-dogfoot-wus.documents.azure.com
+    databaseId: sa-xiaodoli
+
+databaseReadRegion: West US
+
+imageUsername:
+
+# following secrets provided from volume
+#   databaseAuthorizationKeys:
+#       eus:
+#       wus:
+#   ingressCacrt
+#   ingressTlsCrt
+#   ingressTlsKey
+
+encryptionKey0Id: 2018-08-01-Dogfood # The id should correspond to the encryptionKey0Value in ContainerServiceRegion.{Environment}ContainerService{Region}.RolloutParameters
