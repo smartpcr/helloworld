@@ -10,6 +10,7 @@ function SetTerraformValue {
     }
     
     $regex = New-Object System.Text.RegularExpressions.Regex("$name\s*=\s*""?([^""]*)\""?")
+    $value = $value.Replace("\", "\\") # fix windows path 
     $replaceValue = "$name = ""$value"""
     $buffer = New-Object System.Text.StringBuilder
 

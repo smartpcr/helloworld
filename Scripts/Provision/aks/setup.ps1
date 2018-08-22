@@ -15,6 +15,7 @@ $envFolder = Join-Path $scriptFolder "Env"
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle "Setup AKS Cluster for Environment '$EnvName'"
 
+
 LogStep -Step 1 -Message "Retrieving settings for environment '$EnvName'..."
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
 $akstfvarFile = Join-Path $aksProvisionFolder "terraform.tfvars"
@@ -74,4 +75,4 @@ terraform apply -var-file $credentialTfFile
 
 LogStep -Step 6 -Message "View kubenetes dashboard..." 
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
-az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+& az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
