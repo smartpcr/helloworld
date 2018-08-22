@@ -55,6 +55,6 @@ az aks get-credentials -g "$($bootstrapValues.aks.resourceGroup)" -n "$($bootstr
 
 Write-Host "3) Deploy to AKS cluster..." -ForegroundColor Green
 Set-Location $deployFolder 
-kubectl create -f "sa-frontend.yaml"
-kubectl create -f "sa-webapp.yaml"
-kubectl create -f "sa-logic.yaml"
+kubectl apply -f "sa-frontend.yaml"
+kubectl apply -f "sa-webapp.yaml"
+kubectl apply -f "sa-logic.yaml"

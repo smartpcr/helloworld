@@ -35,5 +35,6 @@ spec:
     - port: 80
       protocol: TCP
       targetPort: 8080
+      name: api
   selector:
     app: sa-web-app

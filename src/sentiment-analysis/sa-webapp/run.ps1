@@ -50,5 +50,5 @@ if ($dockerContainerFound) {
     docker container stop $imageName | Out-Null
     docker container rm $imageName | Out-Null
 }
-docker run -d -p 8080:8080 --name $imageName "$($acrLoginServer)/$($imageName):$($imageTag)" 
+docker run -d -p 8080:8080 --name $imageName -e SA_LOGIC_API_URL='http://172.17.0.4:5000' "$($acrLoginServer)/$($imageName):$($imageTag)" | Out-Null
 # docker exec -it $imageName /bin/sh 

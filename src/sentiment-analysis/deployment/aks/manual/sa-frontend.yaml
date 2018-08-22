@@ -32,6 +32,7 @@ spec:
     - port: 80
       protocol: TCP
       targetPort: 80
+      name: frontend
   selector: 
     app: sa-frontend
 

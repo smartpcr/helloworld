@@ -31,5 +31,6 @@ spec:
     - port: 80
       protocol: TCP
       targetPort: 5000
+      name: backend
   selector:
     app: sa-logic
