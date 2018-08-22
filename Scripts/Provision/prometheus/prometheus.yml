@@ -1,9 +1,9 @@
-kind: Deployment
 apiVersion: extensions/v1beta1
+kind: Deployment
 metadata:
-  name: prometheus-operator
   labels:
     k8s-app: prometheus-operator
+  name: prometheus-operator
 spec:
   replicas: 1
   template:
@@ -29,16 +29,16 @@ spec:
             memory: 50Mi
       serviceAccountName: prometheus-operator
 ---
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
   name: prometheus
 spec:
   type: LoadBalancer
+  ports:
+  - name: web
+    port: 9090
+    protocol: TCP
+    targetPort: web
   selector:
     prometheus: prometheus
-  ports:
-  - port: 9090
-    targetPort: 9090
-    name: web
-    protocol: TCP

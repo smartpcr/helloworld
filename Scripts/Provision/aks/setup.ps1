@@ -91,4 +91,6 @@ LogStep -Step 7 -Message "View kubenetes dashboard..."
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
 $kubeContextName = "$(kubectl config current-context)"
 LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
-Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"
+# run the following on windows
+# Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"
+az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName) &

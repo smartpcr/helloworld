@@ -11,19 +11,19 @@ spec:
   serviceMonitorSelector:
     matchExpressions:
     - {key: prometheus-enabled, operator: Exists}
-  # ruleSelector:
-  #   matchLabels:
-  #     role: prometheus-rulefiles
-  #     prometheus: k8s
+  #ruleSelector:
+  #  matchLabels:
+  #    role: prometheus-rulefiles
+  #    prometheus: k8s
   resources:
-    request:
+    requests:
       # 2Gi is default, but won't schedule if you don't have a node with >2Gi
       # memory. Modify based on your target and time-series count for
       # production use. This value is mainly meant for demonstration/testing
       # purposes.
       memory: 400Mi
-  # alerting:
-  #   alertmanagers:
-  #   - namespace: monitoring
-  #     name: alertmanager-main
-  #     port: web
+  #alerting:
+  #  alertmanagers:
+  #  - namespace: monitoring
+  #    name: alertmanager-main
+  #    port: web
