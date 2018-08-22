@@ -51,7 +51,6 @@ SetTerraformValue -valueFile $credentialTfFile -name "tenant_id" -value $azAccou
 SetTerraformValue -valueFile $credentialTfFile -name "client_id" -value $tfsp.appId
 SetTerraformValue -valueFile $credentialTfFile -name "client_secret" -value $tfSpPwd.value   
 SetTerraformValue -valueFile $credentialTfFile -name "aks_service_principal_password" -value $servicePrincipalPwd.value 
-
 SetTerraformValue -valueFile $akstfvarFile -name "aks_service_principal_app_id" -value $bootstrapValues.aks.servicePrincipalAppId
 SetTerraformValue -valueFile $akstfvarFile -name "aks_resource_group_name" -value $bootstrapValues.aks.resourceGroup
 SetTerraformValue -valueFile $akstfvarFile -name "acr_resource_group_name" -value $bootstrapValues.acr.resourceGroup
@@ -74,14 +73,8 @@ terraform plan -var-file $credentialTfFile
 terraform apply -var-file $credentialTfFile
 # terraform destroy -var-file $credentialTfFile
 
-LogStep -Step 6 -Message "View kubenetes dashboard..." 
-az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
-$kubeContextName = "$(kubectl config current-context)"
-LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
-Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"
 
-
-LogStep -Step 7 -Message "Ensure aks service principal has access to ACR..."
+LogStep -Step 6 -Message "Ensure aks service principal has access to ACR..."
 $acrName = $bootstrapValues.acr.name
 $acrResourceGroup = $bootstrapValues.acr.resourceGroup
 $acrFound = "$(az acr list -g $acrResourceGroup --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
@@ -92,3 +85,10 @@ $acrId = "$(az acr show --name $acrName --query id --output tsv)"
 $aksSpnName = $bootstrapValues.aks.servicePrincipal
 $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
 az role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
+
+
+LogStep -Step 7 -Message "View kubenetes dashboard..." 
+az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+$kubeContextName = "$(kubectl config current-context)"
+LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
+Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"

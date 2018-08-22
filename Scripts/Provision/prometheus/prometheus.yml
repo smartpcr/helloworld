@@ -1,0 +1,44 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: prometheus-operator
+  labels:
+    k8s-app: prometheus-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: prometheus-operator
+    spec:
+      containers:
+      - args:
+        - --kubelet-service=kube-system/kubelet
+        - --config-reloader-image=quay.io/coreos/configmap-reload:v0.0.1
+        image: quay.io/coreos/prometheus-operator:v0.17.0
+        name: prometheus-operator
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      serviceAccountName: prometheus-operator
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: prometheus
+spec:
+  type: LoadBalancer
+  selector:
+    prometheus: prometheus
+  ports:
+  - port: 9090
+    targetPort: 9090
+    name: web
+    protocol: TCP
