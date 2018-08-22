@@ -68,6 +68,7 @@ SetTerraformValue -valueFile $akstfvarFile -name "aks_ssh_public_key" -value $ak
 
 
 LogStep -Step 5 -Message "Run terraform provision..." 
+Set-Location $aksProvisionFolder
 terraform init 
 terraform plan -var-file $credentialTfFile
 terraform apply -var-file $credentialTfFile
@@ -75,4 +76,6 @@ terraform apply -var-file $credentialTfFile
 
 LogStep -Step 6 -Message "View kubenetes dashboard..." 
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
-& az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+$kubeContextName = "$(kubectl config current-context)"
+LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
+Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"

@@ -1,7 +1,5 @@
 param([string] $EnvName = "dev")
 
-$ErrorActionPreference = "Stop"
-Write-Host "Deploy docker image for environment '$EnvName'..." -ForegroundColor Green 
 
 $deployFolder = $PSScriptRoot
 if (!$deployFolder) {
@@ -12,13 +10,20 @@ $serviceRootFolder = (Split-Path (Split-Path (Split-Path $deployFolder -Parent) 
 $ScriptFolder = Join-Path (Split-Path (Split-Path $serviceRootFolder -Parent) -Parent) "Scripts"
 $EnvFolder = Join-Path $ScriptFolder "Env"
 $ModuleFolder = Join-Path $ScriptFolder "modules"
+$imageBranchName = "master"
+$imageCommitId = "commitId"
+$serviceName = "Sentiment Analysis"
+$imageTag = "$($imageBranchName)-$($imageCommitId)"
 
 Import-Module (Join-Path $ModuleFolder "common2.psm1") -Force
 Import-Module (Join-Path $ModuleFolder "YamlUtil.psm1") -Force
 Import-Module (Join-Path $ModuleFolder "VaultUtil.psm1") -Force
 Import-Module (Join-Path $ModuleFolder "TerraformUtil.psm1") -Force
+SetupGlobalEnvironmentVariables -ScriptFolder $ScriptFolder
+LogTitle -Message "Deploy '$($serviceName)' with tag '$($imageTag)' to AKS in Environment '$EnvName'"
 
-Write-Host "1) load environment yaml settings from Env/${EnvName}..." -ForegroundColor Green
+
+LogStep -Step 1 -Message "load environment yaml settings from Env '$EnvName'..." 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvFolder
 $acrName = $bootstrapValues.acr.name
 $rgName = $bootstrapValues.acr.resourceGroup
@@ -29,8 +34,7 @@ if (!$acrLoginServer) {
 $saFontendYamlFile = Join-Path $deployFolder "sa-frontend.yaml"
 $saWebAppYamlFile = Join-Path $deployFolder "sa-webapp.yaml"
 $saLogicYamlFile = Join-Path $deployFolder "sa-logic.yaml"
-$imageBranchName = "master"
-$imageCommitId = "commitId"
+
 ReplaceValuesInYamlFile -YamlFile $saFontendYamlFile -PlaceHolder "saFrontendImageName" -Value "sa-frontend"
 ReplaceValuesInYamlFile -YamlFile $saWebAppYamlFile -PlaceHolder "saWebAppImageName" -Value "sa-webappp"
 ReplaceValuesInYamlFile -YamlFile $saLogicYamlFile -PlaceHolder "saLogicImageName" -Value "sa-logic"

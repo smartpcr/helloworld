@@ -102,3 +102,8 @@ choco install terraform -y
 # install openssl
 Write-Host "Installing openssl..."
 choco install openssl.light -y 
+
+# setup jdk env
+choco install jdk8 -params 'installdir=c:\\java8' -Y
+[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\java8\jre", "Machine")
+choco install maven -y 

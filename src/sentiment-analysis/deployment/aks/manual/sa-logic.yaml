@@ -16,7 +16,7 @@ spec:
           app: sa-logic
       spec:
         containers:
-          - image: {{ .Values.acrLoginServer }}/{{ .Values.saLogicImageName }}:{{ .Values.saLogicBranch }}-{{ .Values.saLogicCommitId }}
+          - image: acrxiaodolidev4.azurecr.io/sa-logic:master-commitId
             imagePullPolicy: Always
             name: sa-logic
             ports: 
@@ -33,3 +33,5 @@ spec:
       targetPort: 5000
   selector:
     app: sa-logic
+
+

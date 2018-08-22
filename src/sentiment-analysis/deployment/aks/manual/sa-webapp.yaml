@@ -16,7 +16,7 @@ spec:
           app: sa-web-app
       spec:
         containers:
-          - image: {{ .Values.acrLoginServer }}/{{ .Values.saWebAppImageName }}:{{ .Values.saWebAppBranch }}-{{ .Values.saWebAppCommitId }}
+          - image: acrxiaodolidev4.azurecr.io/sa-webappp:master-commitId
             imagePullPolicy: Always
             name: sa-web-app
             env: 
@@ -37,3 +37,5 @@ spec:
       targetPort: 8080
     selector:
       app: sa-web-app
+
+
