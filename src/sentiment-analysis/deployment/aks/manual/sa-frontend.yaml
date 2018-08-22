@@ -14,7 +14,8 @@ spec:
     metadata:
       labels:
         app: sa-frontend
-      spec:
+    spec:
+      containers:
         - image: acrxiaodolidev4.azurecr.io/sa-frontend:master-commitId
           imagePullPolicy: Always
           name: sa-frontend

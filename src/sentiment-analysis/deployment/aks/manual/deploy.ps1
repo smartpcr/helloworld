@@ -54,6 +54,7 @@ Write-Host "2) Login to service principal '$($bootstrapValues.terraform.serviceP
 az aks get-credentials -g "$($bootstrapValues.aks.resourceGroup)" -n "$($bootstrapValues.aks.clusterName)"
 
 Write-Host "3) Deploy to AKS cluster..." -ForegroundColor Green
-kubectl create -f $saFrontendYamlFile
-kubectl create -f $saWebAppYamlFile
-kubectl create -f $saLogicYamlFile
+Set-Location $deployFolder 
+kubectl create -f "sa-frontend.yaml"
+kubectl create -f "sa-webapp.yaml"
+kubectl create -f "sa-logic.yaml"
