@@ -102,3 +102,15 @@ choco install terraform -y
 # install openssl
 Write-Host "Installing openssl..."
 choco install openssl.light -y 
+
+# setup java
+choco install jdk8 -params 'installdir=c:\\java8' -Y
+[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\java8\jre", "Machine")
+choco install maven -y 
+
+# setup python
+# brew install mysql
+# brew install pip 
+# pip install mysqlclient
+# pip install flask
+# pip install prometheus_client

@@ -1,0 +1,31 @@
+{{- if .Values.ingressEnabled -}}
+{{- $fullName := include "CustomServiceName.fullname" . -}}
+{{- $servicePort := .Values.servicePort -}}
+{{- $ingressPath := .Values.ingressPath -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app: {{ template "CustomServiceName.name" . }}
+    chart: {{ template "CustomServiceName.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.ingressAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  tls:
+    - hosts: 
+      - "*.{{ .Values.ingressTlsHostDomain }}" 
+      secretName: tls-cert
+  rules:
+    - host: "*.{{ .Values.ingressTlsHostDomain }}" 
+      http:
+        paths:
+          - path: {{ $ingressPath }}
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: http
+{{- end }}

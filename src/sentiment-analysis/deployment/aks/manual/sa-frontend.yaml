@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sa-frontend
+spec:
+  replicas: 2
+  minReadySeconds: 15
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: sa-frontend
+    spec:
+      containers:
+        - image: acrxiaodolidev4.azurecr.io/sa-frontend:master-commitId
+          imagePullPolicy: Always
+          name: sa-frontend
+          ports: 
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sa-frontend-lb
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+      name: frontend
+  selector: 
+    app: sa-frontend
+
+

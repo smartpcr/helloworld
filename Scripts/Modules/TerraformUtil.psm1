@@ -10,6 +10,7 @@ function SetTerraformValue {
     }
     
     $regex = New-Object System.Text.RegularExpressions.Regex("$name\s*=\s*""?([^""]*)\""?")
+    $value = $value.Replace("\", "\\") # fix windows path 
     $replaceValue = "$name = ""$value"""
     $buffer = New-Object System.Text.StringBuilder
 
@@ -21,7 +22,7 @@ function SetTerraformValue {
         if ($match.Success) {
             $content | ForEach-Object {
                 $line = $_ 
-                if ($line) {
+            if ($line -and $line.Length -gt 0) {
                     $line = $regex.Replace($line, $replaceValue)
                     $buffer.AppendLine($line) | Out-Null
                 }
@@ -38,5 +39,6 @@ function SetTerraformValue {
         }
     }
 
-    $buffer.ToString() | Out-File $valueFile -Encoding ascii
+    $buffer.ToString().TrimEnd() | Out-File $valueFile -Encoding ascii
+    terraform fmt $valueFile | Out-Null
 }

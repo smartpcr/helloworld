@@ -2,31 +2,33 @@ global:
     subscriptionName: {{ .Values.subscriptionName }}
     tenantId: {{ .Values.tenantId }}
     location: {{ .Values.location }}
-    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sp"
+    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-spn"
     servicePrincipalAppId: {{ .Values.servicePrincipalAppId }}
     servicePrincipalCertThumbprint: {{ .Values.servicePrincipalCertThumbprint }}
     resourceGroup: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-rg"
     aks: true
-    sf: false
 kv:
     name: "{{ .Values.owner }}-kv"
     resourceGroup: "{{ .Values.owner }}"
     location: "{{ .Values.location }}"
 terraform:
-    resourceGroup: "{{ .Values.owner }}"
+    resourceGroup: "tf-{{ .Values.owner }}-rg"
     location: "{{ .Values.location }}"
-    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf"
+    servicePrincipal: "tf-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn"
     servicePrincipalAppId: 
-    servicePrincipalSecretName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-secret"
+    servicePrincipalSecretName: "tf-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn-pwd"
     stateStorageAccountName: "tfstorage{{ .Values.owner }}"
     stateStorageAccountConnectionString:
     stateBlobContainerName: "tfstate"
 acr:
-    name: "{{ .Values.owner }}acr{{ .Values.envName }}"
-    resourceGroup: "{{ .Values.owner }}"
+    name: "acr{{ .Values.owner }}{{ .Values.envName }}"
+    resourceGroup: "acr-{{ .Values.owner }}-rg"
     location: "{{ .Values.location }}"
-    passwordSecretName: "acr-{{ .Values.owner }}acr-{{ .Values.envName }}-pwd"
+    passwordSecretName: "acr-{{ .Values.owner }}-{{ .Values.envName }}-pwd"
     email: {{ .Values.email }}
+helm: 
+    storageAccountName: "{{ .Values.helmStorageAccountName }}"
+    blobContainerName: "{{ .Values.helmBlobContainerName }}"
 sf:
     serviceFabricClusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf"
     managementCert:
@@ -41,15 +43,15 @@ sf:
             nodeCount: 1
             vmSize: Standard_DS4
 aks:
-    clusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s"
-    resourceGroup: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s"
+    clusterName: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-cluster"
+    resourceGroup: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-rg"
     location: "{{ .Values.location }}"
     dnsPrefix: {{ .Values.aksDnsPrefix }}
-    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp"
-    servicePrincipalAppId: {{ .Values.aksServicePrincipalAppId }}
-    servicePrincipalPassword: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-webapp-pwd"
+    servicePrincipal: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn"
+    servicePrincipalAppId: "{{ .Values.aksServicePrincipalAppId }}"
+    servicePrincipalPassword: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn-pwd"
     nodeCount: 3
     vmSize: Standard_D1_v2
-    ssh_pubblic_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert-pub"
-    ssh_private_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert"
-    ssh_cert_pwd_ame: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cert-pwd"
+    ssh_pubblic_key: "k8s-ssh-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-pub"
+    ssh_private_key: "k8s-ssh-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-key"
+    ssh_cert_pwd_ame: "k8s-ssh-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-pwd"

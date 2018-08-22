@@ -10,22 +10,24 @@
 #>
 param([string] $EnvName = "dev")
 
-$ErrorActionPreference = "Stop"
-Write-Host "Setting service principal for environment '$EnvName'..."
 
-$scriptFolder = $PSScriptRoot
-if (!$scriptFolder) {
-    $scriptFolder = Get-Location
+$envFolder = $PSScriptRoot
+if (!$envFolder) {
+    $envFolder = Get-Location
 }
-Import-Module "$scriptFolder\..\modules\common.psm1" -Force
-Import-Module "$scriptFolder\..\modules\YamlUtil.psm1" -Force
-Import-Module "$scriptFolder\..\modules\CertUtil.psm1" -Force
+$scriptFolder = Split-Path $envFolder -Parent
+$moduleFolder = Join-Path $scriptFolder "modules"
+Import-Module (Join-Path $moduleFolder "common.psm1") -Force
+Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
+Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
+SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
+LogTitle "Setting service principal for environment '$EnvName'..."
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
 $spnName = $bootstrapValues.global.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
-Write-Host "Ensure service principal with name '$spnName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
+LogInfo -Message "Ensure service principal with name '$spnName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
 
 # login and set subscription 
 LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
@@ -34,7 +36,7 @@ LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
 # create resource group 
 $rg = Get-AzureRmResourceGroup -Name $rgName -ErrorAction SilentlyContinue
 if (!$rg) {
-    Write-Host "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
+    LogInfo -Message "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
     New-AzureRmResourceGroup -Name $rgName -Location $bootstrapValues.global.location
 }
 
@@ -42,7 +44,7 @@ if (!$rg) {
 New-AzureRmResourceGroup -Name $bootstrapValues.kv.resourceGroup -Location $bootstrapValues.kv.location
 $kv = Get-AzureRmKeyVault -VaultName $vaultName -ResourceGroupName $rgName -ErrorAction SilentlyContinue
 if (!$kv) {
-    Write-Host "Creating Key Vault $vaultName..."
+    LogInfo -Message "Creating Key Vault $vaultName..."
     
     New-AzureRmKeyVault -Name $vaultName `
         -ResourceGroupName $rgName `
@@ -51,7 +53,7 @@ if (!$kv) {
         -Location $bootstrapValues.global.location | Out-Null
 }
 else {
-    Write-Host "Key vault $($kv.VaultName) is already created"
+    LogInfo -Message "Key vault $($kv.VaultName) is already created"
 }
 
 # create service principal (SPN) for cluster provision

@@ -46,9 +46,6 @@ variable "aks_resource_group_name" {
   type = "string"
 }
 
-variable "acr_resource_group_name" {
-  type = "string"
-}
 variable "tags" {
   type = "map"
 
@@ -56,15 +53,6 @@ variable "tags" {
     Environment = "dev"
     Responsible = "Xiaodong Li"
   }
-}
-
-variable "acr_name" {
-  type = "string"
-}
-
-variable "acr_sku" {
-  type    = "string"
-  default = "Basic"
 }
 
 variable "aks_name" {

@@ -1,0 +1,93 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "CustomServiceName.fullname" . }}
+  labels:
+    app: {{ template "CustomServiceName.name" . }}
+    chart: {{ template "CustomServiceName.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "CustomServiceName.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "CustomServiceName.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ required "The imageRegistry parameter must be provided." .Values.imageRegistry }}/{{ required "The imageName parameter must be provided." .Values.imageName }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          resources:
+          env:
+            - name: ASPNETCORE_URLS
+              value: {{ .Values.aspNetCoreUrls }}
+            - name: Storage__DocumentStores__0__Id
+              value: {{ .Values.documentDatabases.eus.id }}
+            - name: Storage__DocumentStores__0__AuthorizationKey
+              value: {{ .Values.databaseAuthorizationKeys.eus }}
+            - name: Storage__DocumentStores__0__EndpointUrl
+              value: {{ .Values.documentDatabases.eus.endpointUrl }}
+            - name: Storage__DocumentStores__0__DatabaseId
+              value: {{ .Values.documentDatabases.eus.databaseId }}
+            - name: Storage__DocumentStores__0__ConnectionMode
+              value: Gateway
+            - name: Storage__DocumentStores__1__Id
+              value: {{ .Values.documentDatabases.wus.id }}
+            - name: Storage__DocumentStores__1__AuthorizationKey
+              value: {{ .Values.databaseAuthorizationKeys.wus }}
+            - name: Storage__DocumentStores__1__EndpointUrl
+              value: {{ .Values.documentDatabases.wus.endpointUrl }}
+            - name: Storage__DocumentStores__1__DatabaseId
+              value: {{ .Values.documentDatabases.wus.databaseId }}
+            - name: Storage__DocumentStores__1__ConnectionMode
+              value: Gateway
+            - name: Storage__PreferredRegions__0
+              value: {{ .Values.databaseReadRegion | quote }}
+            - name: Security__EncryptionKeys__0__Id
+              value: {{ .Values.encryptionKey0Id }}
+            - name: Security__EncryptionKeys__0__Value
+              value: {{ .Values.encryptionKey0Value }}
+            - name: MetricCounter__StatsdHost
+              value: "geneva-services.geneva-services.svc.cluster.local"
+            - name: MetricCounter__StatsdPort
+              value: "8125"
+            - name: MetricCounter__MdmNamespace
+              value: "AzConfig"
+            - name: MetricCounter__Role
+              value: {{ .Values.CustomServiceName }}
+            - name: MetricCounter__ClusterName
+              value: {{ required "Aks cluster name is required!" .Values.aksClusterName }}
+            - name: MetricCounter__NodeName 
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MetricCounter__PodName
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      {{- if .Values.imagePassword }} # If imagePassword is not provided then AKS uses its service principal to authenticate with ACR.
+      imagePullSecrets:
+      - name: acr-auth
+      {{- end }}
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "CustomServiceName.name" . }}-pdb
+  namespace: {{ .Values.namespace }}
+spec:
+  maxUnavailable: 2
+  selector:
+    matchLabels: # Must match the selector from the deployment above.
+      app: {{ template "CustomServiceName.name" . }}
+      release: {{ .Release.Name }}
