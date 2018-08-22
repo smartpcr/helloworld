@@ -26,4 +26,4 @@ aks_ssh_public_key = "E:\\work\\github\\container\\helloworld\\Scripts\\Env\\cre
 
 acr_name = "acrxiaodolidev4"
 
-acr_resource_group_name = "acr-xiaodoli-rg"
+acr_resource_group_name = "helloworld-dev4-xiaodoli-wus2-rg"

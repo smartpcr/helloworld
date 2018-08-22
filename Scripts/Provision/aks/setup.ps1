@@ -79,3 +79,16 @@ az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --nam
 $kubeContextName = "$(kubectl config current-context)"
 LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
 Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"
+
+
+LogStep -Step 7 -Message "Ensure aks service principal has access to ACR..."
+$acrName = $bootstrapValues.acr.name
+$acrResourceGroup = $bootstrapValues.acr.resourceGroup
+$acrFound = "$(az acr list -g $acrResourceGroup --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
+if (!$acrFound) {
+    throw "Please setup ACR first by running Setup-ContainerRegistry.ps1 script"
+}
+$acrId = "$(az acr show --name $acrName --query id --output tsv)"
+$aksSpnName = $bootstrapValues.aks.servicePrincipal
+$aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
+az role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null

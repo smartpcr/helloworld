@@ -36,7 +36,7 @@ $saWebAppYamlFile = Join-Path $deployFolder "sa-webapp.yaml"
 $saLogicYamlFile = Join-Path $deployFolder "sa-logic.yaml"
 
 ReplaceValuesInYamlFile -YamlFile $saFontendYamlFile -PlaceHolder "saFrontendImageName" -Value "sa-frontend"
-ReplaceValuesInYamlFile -YamlFile $saWebAppYamlFile -PlaceHolder "saWebAppImageName" -Value "sa-webappp"
+ReplaceValuesInYamlFile -YamlFile $saWebAppYamlFile -PlaceHolder "saWebAppImageName" -Value "sa-webapp"
 ReplaceValuesInYamlFile -YamlFile $saLogicYamlFile -PlaceHolder "saLogicImageName" -Value "sa-logic"
 ReplaceValuesInYamlFile -YamlFile $saFontendYamlFile -PlaceHolder "acrLoginServer" -Value $acrLoginServer
 ReplaceValuesInYamlFile -YamlFile $saWebAppYamlFile -PlaceHolder "acrLoginServer" -Value $acrLoginServer

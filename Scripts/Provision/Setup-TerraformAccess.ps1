@@ -85,6 +85,7 @@ if (!$acrFound) {
 $acrId = "$(az acr show --name $acrName --query id --output tsv)"
 az role assignment create --assignee $tfSp.appId --scope $acrId --role contributor | Out-Null
 
+
 # LogStep -Step 4 -Message "Login as service principal '$spnName'"
 # az login --service-principal -u "http://$spnName" -p $tfSpPwd.value --tenant $tenantId
 

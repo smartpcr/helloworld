@@ -16,7 +16,7 @@ spec:
         app: sa-web-app
     spec:
       containers:
-        - image: acrxiaodolidev4.azurecr.io/sa-webappp:master-commitId
+        - image: acrxiaodolidev4.azurecr.io/sa-webapp:master-commitId
           imagePullPolicy: Always
           name: sa-web-app
           env: 
