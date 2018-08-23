@@ -79,7 +79,17 @@ $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
 az role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
 
 
-LogStep -Step 5 -Message "Setup helm integration..."
+LogStep -Step 5 -Message "Set AKS context..."
+rm -rf /Users/xiaodongli/.kube/config
+az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+$devEnvFolder = Join-Path $envFolder $EnvName
+$dashboardYamlFile = Join-Path $devEnvFolder "dashboard-admin.yaml"
+kubectl apply -f $dashboardYamlFile
+$kubeContextName = "$(kubectl config current-context)" 
+LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
+
+
+LogStep -Step 6 -Message "Setup helm integration..."
 kubectl -n kube-system create sa tiller
 kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
 helm init --service-account tiller --upgrade
