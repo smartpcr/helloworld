@@ -22,7 +22,7 @@ aks_service_principal_app_id = "41ade730-36f4-4e12-a1f6-d05ecc8ec74c"
 
 dns_prefix = "hw-aks-xd"
 
-aks_ssh_public_key = "C:\\work\\github\\container\\helloworld\\Scripts\\Env\\credential\\dev\\k8s-ssh-helloworld-dev4-xiaodoli-key.pub"
+aks_ssh_public_key = "/Users/xiaodongli/work/github/containers/helloworld/Scripts/Env/credential/dev/k8s-ssh-helloworld-dev4-xiaodoli-key.pub"
 
 acr_name = "acrxiaodolidev4"
 
