@@ -34,6 +34,14 @@ $dnsPrefix = $bootstrapValues.aks.dnsPrefix
 $nodeCount = $bootstrapValues.aks.nodeCount
 $vmSize = $bootstrapValues.aks.vmSize
 $aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
+if (!$aksSpnAppId) {
+    throw "AKS service principal is not setup yet"
+}
+$aksClientAppId = $bootstrapValues.aks.clientAppId
+if (!$aksClientAppId) {
+    throw "AKS client app is not setup yet"
+}
+$tenantId = $bootstrapValues.global.tenantId
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
 
 LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
@@ -62,8 +70,10 @@ az aks create `
     --dns-name-prefix $dnsPrefix `
     --node-count $nodeCount `
     --node-vm-size $vmSize `
-    --service-principal $aksSpnAppId `
-    --client-secret $aksSpnPwd 
+    --aad-server-app-id $aksSpnAppId `
+    --aad-server-app-secret $aksSpnPwd `
+    --aad-client-app-id $aksClientAppId `
+    --aad-tenant-id $tenantId
 
 
 LogStep -Step 4 -Message "Ensure aks service principal has access to ACR..."
@@ -80,7 +90,7 @@ az role assignment create --assignee $aksSpn.appId --scope $acrId --role contrib
 
 
 LogStep -Step 5 -Message "Set AKS context..."
-rm -rf /Users/xiaodongli/.kube/config
+# rm -rf /Users/xiaodongli/.kube/config
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
 $devEnvFolder = Join-Path $envFolder $EnvName
 $dashboardYamlFile = Join-Path $devEnvFolder "dashboard-admin.yaml"

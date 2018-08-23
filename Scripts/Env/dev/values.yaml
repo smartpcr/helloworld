@@ -11,4 +11,3 @@ helmBlobContainerName: helm
 subscriptionAlias: rrdprem
 acrOwnerEmail: xiaodoli@microsoft.com
 envName: dev
-

@@ -33,8 +33,8 @@ $spnName = $bootstrapValues.global.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup
 $subscriptionId = $azureAccount.id 
-
-$devValueYamlFile = "$envFolder\$EnvName\values.yaml"
+$currentEnvFolder = Join-Path $envFolder $EnvName
+$devValueYamlFile = Join-Path $currentEnvFolder "values.yaml"
 $values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
 
 # create resource group 
@@ -105,14 +105,16 @@ if ($bootstrapValues.global.aks -eq $true) {
 
     $aksSpnName = $bootstrapValues.aks.servicePrincipal
     $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
-    $aksSpn = Get-OrCreateServicePrincipalUsingPassword2 `
+    Get-OrCreateAksServicePrincipal `
         -ServicePrincipalName $aksSpnName `
         -ServicePrincipalPwdSecretName $askSpnPwdSecretName `
         -VaultName $vaultName `
         -ScriptFolder $envFolder `
-        -EnvName $EnvName
+        -EnvName $EnvName | Out-Null
     
     $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
+    LogInfo -Message "set groupMembershipClaims to [All] to spn '$aksSpnName'"
+    az ad app update --id $aksSpn.appId --set groupMembershipClaims="All" | Out-Null
     
     # write to values.yaml
     $values.aksServicePrincipalAppId = $aksSpn.appId
@@ -129,6 +131,12 @@ if ($bootstrapValues.global.aks -eq $true) {
         --spn $aksSpn.displayName `
         --certificate-permissions get list update delete `
         --secret-permissions get list set delete | Out-Null
+
+    LogInfo -Message "Creating AKS Client App '$($bootstrapValues.aks.clientAppName)'..."
+    Get-OrCreateAksClientApp -EnvRootFolder $envFolder -EnvName $EnvName | Out-Null
+
+    $aksClientApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
+    $values.clientAppId = $aksClientApp.appId
 }
 
 # write to values.yaml

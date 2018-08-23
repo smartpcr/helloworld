@@ -91,12 +91,12 @@ function Get-OrCreatePasswordInVault2 {
     return $res 
 }
 
-function Get-OrCreateServicePrincipalUsingPassword2 {
+function Get-OrCreateAksServicePrincipal {
     param(
         [string] $ServicePrincipalName,
         [string] $ServicePrincipalPwdSecretName,
         [string] $VaultName,
-        [string] $ScriptFolder,
+        [string] $EnvRootFolder,
         [string] $EnvName
     )
 
@@ -107,24 +107,68 @@ function Get-OrCreateServicePrincipalUsingPassword2 {
         return $sp
     }
 
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
-
-    $rgName = $bootstrapValues.global.resourceGroup
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvRootFolder
+    $rgName = $bootstrapValues.aks.resourceGroup
     $azAccount = az account show | ConvertFrom-Json
     $subscriptionId = $azAccount.id
     $scopes = "/subscriptions/$subscriptionId/resourceGroups/$($rgName)"
+    $currentEnvFolder = Join-Path $EnvRootFolder $EnvName
+    $spnAuthJsonFile = Join-Path $currentEnvFolder "aks-spn-auth.json"
     
     LogInfo -Message "Granting spn '$ServicePrincipalName' 'Contributor' role to resource group '$rgName'"
     az ad sp create-for-rbac `
         --name $ServicePrincipalName `
         --password $($servicePrincipalPwd.value) `
+        --identifier-uris "http://$ServicePrincipalName" `
         --role="Contributor" `
-        --scopes=$scopes | Out-Null
+        --scopes=$scopes `
+        --required-resource-accesses $spnAuthJsonFile | Out-Null
     
     $sp = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+
+    LogInfo -Message "Grant required resource access for aad app..."
+    az ad app update --id $sp.appId --required-resource-accesses $spnAuthJsonFile | Out-Null
     return $sp 
 }
 
+
+function Get-OrCreateAksClientApp {
+    param(
+        [string] $EnvRootFolder,
+        [string] $EnvName
+    )
+
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvRootFolder
+    $ClientAppName = $bootstrapValues.aks.clientAppName
+    $ClientAppPwdSecretName = $bootstrapValues.aks.clientAppPassword
+    $VaultName = $bootstrapValues.kv.name
+
+    $aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
+    if (!$aksSpn) {
+        throw "Cannot create client app when server app with name '$($bootstrapValues.aks.servicePrincipal)' is not found!"
+    }
+
+    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ClientAppPwdSecretName
+    $spFound = az ad sp list --display-name $ClientAppName | ConvertFrom-Json
+    if ($spFound) {
+        az ad sp credential reset --name $ClientAppName --password $servicePrincipalPwd.value 
+        return $sp
+    }
+    
+    LogInfo -Message "Granting client app '$ClientAppName' and grant access to server app '$($bootstrapValues.aks.servicePrincipal)'"
+    $resourceAccess = "[{`"resourceAccess`": [{`"id`": `"318f4279-a6d6-497a-8c69-a793bda0d54f`", `"type`": `"Scope`"}],`"resourceAppId`": `"$($aksSpn.appId)`"}]" 
+    $currentEnvFolder = Join-Path $EnvRootFolder $EnvName
+    $clientAppResourceAccessJsonFile = Join-Path $currentEnvFolder "aks-client-auth.json"
+    $resourceAccess | Out-File $clientAppResourceAccessJsonFile -Encoding ascii
+
+    az ad app create `
+        --display-name $ClientAppName `
+        --native-app `
+        --required-resource-accesses @$clientAppResourceAccessJsonFile | Out-Null
+    
+    $sp = az ad sp list --display-name $ClientAppName | ConvertFrom-Json
+    return $sp 
+}
 
 function LoginAzureAsUser2 {
     param (
