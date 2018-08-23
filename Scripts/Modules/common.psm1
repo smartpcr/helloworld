@@ -249,6 +249,19 @@ function Test-AzureCliInstalled() {
     try {
         $azCmd = Get-Command az -ErrorAction SilentlyContinue
         if ($azCmd) {
+            $azVersionConent = az --version
+            $azVersionString = $azVersionConent[0]
+            if ($azVersionString -match "\(([\.0-9]+)\)") {
+                $version = $matches[1]
+                $currentVersion = [System.Version]::new($version)
+                $requiredVersion = [System.Version]::new("2.0.36") # aks enable-rbac is introduced in this version
+                if ($currentVersion -lt $requiredVersion) {
+                    return $false
+                }
+            }
+            else {
+                return $false 
+            }
             return Test-Path $azCmd.Source 
         }
     }

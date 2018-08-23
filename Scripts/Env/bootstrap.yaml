@@ -1,36 +1,37 @@
 global:
-    subscriptionName: {{ .Values.subscriptionName }}
-    tenantId: {{ .Values.tenantId }}
-    location: {{ .Values.location }}
+    subscriptionName: "{{ .Values.subscriptionName }}"
+    tenantId: "{{ .Values.tenantId }}"
+    location: "{{ .Values.location }}"
     servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-spn"
-    servicePrincipalAppId: {{ .Values.servicePrincipalAppId }}
-    servicePrincipalCertThumbprint: {{ .Values.servicePrincipalCertThumbprint }}
+    servicePrincipalAppId: "{{ .Values.servicePrincipalAppId }}"
+    servicePrincipalCertThumbprint: "{{ .Values.servicePrincipalCertThumbprint }}"
     resourceGroup: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-rg"
     aks: true
+    acr: true
 kv:
-    name: "{{ .Values.owner }}-kv"
-    resourceGroup: "{{ .Values.owner }}"
+    name: "{{ .Values.subscriptionAlias }}-kv"
+    resourceGroup: "{{ .Values.subscriptionAlias }}-rg"
     location: "{{ .Values.location }}"
 terraform:
-    resourceGroup: "tf-{{ .Values.owner }}-rg"
+    resourceGroup: "{{ .Values.owner }}-tf-rg"
     location: "{{ .Values.location }}"
-    servicePrincipal: "tf-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn"
+    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-spn"
     servicePrincipalAppId: 
-    servicePrincipalSecretName: "tf-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn-pwd"
-    stateStorageAccountName: "tfstorage{{ .Values.owner }}"
+    servicePrincipalSecretName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-tf-spn-pwd"
+    stateStorageAccountName: "{{ .Values.owner }}tfstorage"
     stateStorageAccountConnectionString:
     stateBlobContainerName: "tfstate"
 acr:
-    name: "acr{{ .Values.owner }}{{ .Values.envName }}"
-    resourceGroup: "acr-{{ .Values.owner }}-rg"
+    name: "{{ .Values.owner }}{{ .Values.envName }}acr"
+    resourceGroup: "{{ .Values.owner }}-acr-rg"
     location: "{{ .Values.location }}"
-    passwordSecretName: "acr-{{ .Values.owner }}-{{ .Values.envName }}-pwd"
-    email: {{ .Values.email }}
+    passwordSecretName: "{{ .Values.owner }}-{{ .Values.envName }}-acr-pwd"
+    email: "{{ .Values.acrOwnerEmail }}"
 helm: 
     storageAccountName: "{{ .Values.helmStorageAccountName }}"
     blobContainerName: "{{ .Values.helmBlobContainerName }}"
 sf:
-    serviceFabricClusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sf"
+    serviceFabricClusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-{{ .Values.loc }}-sfcluster"
     managementCert:
     nodeTypes:
         - frontend:
@@ -43,15 +44,15 @@ sf:
             nodeCount: 1
             vmSize: Standard_DS4
 aks:
-    clusterName: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-cluster"
-    resourceGroup: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-rg"
+    clusterName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-cluster"
+    resourceGroup: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-rg"
     location: "{{ .Values.location }}"
     dnsPrefix: {{ .Values.aksDnsPrefix }}
-    servicePrincipal: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn"
+    servicePrincipal: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-spn"
     servicePrincipalAppId: "{{ .Values.aksServicePrincipalAppId }}"
-    servicePrincipalPassword: "k8s-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-spn-pwd"
+    servicePrincipalPassword: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-spn-pwd"
     nodeCount: 3
     vmSize: Standard_D1_v2
-    ssh_pubblic_key: "k8s-ssh-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-pub"
-    ssh_private_key: "k8s-ssh-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-key"
-    ssh_cert_pwd_ame: "k8s-ssh-{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-pwd"
+    ssh_pubblic_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-ssh-pub"
+    ssh_private_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-ssh-key"
+    ssh_cert_pwd_ame: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-ssh-pwd"

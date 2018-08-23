@@ -52,18 +52,18 @@ $aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.s
 $sshKeyData = Get-Content $aksCertPublicKeyFile
 
 
-LogStep -Step 3 -Message "Creating AKD cluster '$aksClusterName' within resource group '$rgName'..."
+LogStep -Step 3 -Message "Creating AKS cluster '$aksClusterName' within resource group '$rgName'..."
 # this took > 30 min!! Go grab a coffee.
 az aks create `
     --resource-group $rgName `
     --name $aksClusterName `
     --ssh-key-value $sshKeyData `
+    --enable-rbac `
     --dns-name-prefix $dnsPrefix `
     --node-count $nodeCount `
     --node-vm-size $vmSize `
     --service-principal $aksSpnAppId `
-    --client-secret $aksSpnPwd `
-    --enable-rbac
+    --client-secret $aksSpnPwd 
 
 
 LogStep -Step 4 -Message "Ensure aks service principal has access to ACR..."

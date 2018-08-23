@@ -1,13 +1,14 @@
-﻿envName: dev4
-owner: xiaodoli
-aksDnsPrefix: hw-aks-xd
-subscriptionId: c6f1efb8-906b-437e-99b4-e1f0881ec8d2
-aksServicePrincipalAppId: 41ade730-36f4-4e12-a1f6-d05ecc8ec74c
-servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
-email: xiaodoli@microsoft.com
+﻿helmStorageAccountName: rrdhelm
 tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
-subscriptionName: RRD MSDN Ultimate
-servicePrincipalAppId: 84bb5cf7-232d-44b6-9faa-48372752e48a
+subscriptionId: 6abf90e5-4af2-4c86-83aa-5352df938db5
+servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
+aksDnsPrefix: hw-aks-xd
+servicePrincipalAppId: d043778f-9da7-4e12-b7a2-bb61f5699e2a
+owner: xd
+aksServicePrincipalAppId: 831e0d3c-26ee-4ba5-a073-59402b1d442e
+subscriptionName: RRD MSDN Premium
+helmBlobContainerName: helm
+subscriptionAlias: rrdprem
+acrOwnerEmail: xiaodoli@microsoft.com
+envName: dev
 
-helmStorageAccountName: "rrdhelm"
-helmBlobContainerName: "helm"

@@ -1,4 +1,4 @@
-resource_group_name = "helloworld-dev4-xiaodoli-wus2-rg"
+resource_group_name = "helloworld-dev-xd-wus2-rg"
 
 location = "westus2"
 
@@ -8,9 +8,9 @@ tags = {
 }
 
 # aks
-aks_resource_group_name = "k8s-helloworld-dev4-xiaodoli-rg"
+aks_resource_group_name = "helloworld-dev-xd-k8s-rg"
 
-aks_name = "k8s-helloworld-dev4-xiaodoli-cluster"
+aks_name = "helloworld-dev-xd-k8s-cluster"
 
 aks_agent_vm_count = "2"
 
@@ -18,12 +18,12 @@ aks_agent_vm_size = "Standard_D2_v2"
 
 k8s_version = "1.11.1"
 
-aks_service_principal_app_id = "41ade730-36f4-4e12-a1f6-d05ecc8ec74c"
+aks_service_principal_app_id = "831e0d3c-26ee-4ba5-a073-59402b1d442e"
 
 dns_prefix = "hw-aks-xd"
 
-aks_ssh_public_key = "/Users/xiaodongli/work/github/containers/helloworld/Scripts/Env/credential/dev/k8s-ssh-helloworld-dev4-xiaodoli-key.pub"
+aks_ssh_public_key = "C:\\work\\github\\container\\helloworld\\Scripts\\Env\\credential\\dev\\helloworld-dev-xd-k8s-ssh-key.pub"
 
-acr_name = "acrxiaodolidev4"
+acr_name = "xddevacr"
 
-acr_resource_group_name = "acr-xiaodoli-rg"
+acr_resource_group_name = "xd-acr-rg"
