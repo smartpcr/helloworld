@@ -51,6 +51,8 @@ EnsureSshCert `
 $aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.ssh_private_key).pub"
 $sshKeyData = Get-Content $aksCertPublicKeyFile
 
+
+LogStep -Step 3 -Message "Creating AKD cluster '$aksClusterName' within resource group '$rgName'..."
 # this took > 30 min!! Go grab a coffee.
 az aks create `
     --resource-group $rgName `
@@ -60,10 +62,11 @@ az aks create `
     --node-count $nodeCount `
     --node-vm-size $vmSize `
     --service-principal $aksSpnAppId `
-    --client-secret $aksSpnPwd
+    --client-secret $aksSpnPwd `
+    --enable-rbac
 
 
-LogStep -Step 5 -Message "Ensure aks service principal has access to ACR..."
+LogStep -Step 4 -Message "Ensure aks service principal has access to ACR..."
 $acrName = $bootstrapValues.acr.name
 $acrResourceGroup = $bootstrapValues.acr.resourceGroup
 $acrFound = "$(az acr list -g $acrResourceGroup --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
@@ -76,49 +79,8 @@ $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
 az role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
 
 
-ACR_NAME="xdcontainerregistry"
-SERVICE_PRINCIPAL_NAME="xd_acr-service-principal"
-EMAIL="xiaodoli@microsoft.com"
-ACR_LOGIN_SERVER=$(az acr show -n $acrName --query loginServer -o tsv)
-ACR_REGISTRY_ID=$(az acr show -n $acrName --query id -o tsv)
+LogStep -Step 5 -Message "Setup helm integration..."
+kubectl -n kube-system create sa tiller
+kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+helm init --service-account tiller --upgrade
 
-az ad sp list 
-SP_PASSWD=$(az ad sp create-for-rbac -n $SERVICE_PRINCIPAL_NAME --role Reader --scopes $ACR_REGISTRY_ID --query password -o tsv)
-CLIENT_ID=$(az ad sp show --id http://$SERVICE_PRINCIPAL_NAME --query appId -o tsv)
-echo "Service principal ID: $CLIENT_ID"
-echo "Service principal password: $SP_PASSWD"
-k create secret docker-registry acr-auth --docker-server $ACR_LOGIN_SERVER --docker-username $CLIENT_ID --docker-password $SP_PASSWD --docker-email $EMAIL
-
-# create deployment using ACR image
-k create -f src/aks-helloworld/aci-helloworld.yaml 
-k apply -f src/aks-helloworld/aci-helloworld.yaml 
-
-# set nodes count to desired number (this took ~10 min, super slow!!)
-az aks scale -n $aksClusterName -g $rgName -c 10 
-az aks scale -n $aksClusterName -g $rgName -c 2
-
-# shows current control plane and agent pool version, available upgrade versions
-# az aks get-versions -n $aksClusterName -g $rgName --location eastus
-
-# upgrades
-az aks upgrade -n $aksClusterName -g $rgName -k 1.9.6
-
-# switch to different cluster
-k config use-context minikube
-k config use-context $aksClusterName
-
-# use helm/chart (tiller service deployed to kube-system namespace)
-kubectl create -f ./helm-rbac.yaml 
-helm init --service-account tiller
-helm search
-helm repo update
-helm install stable/mysql
-helm list 
-helm delete ugly-billygoat
-
-docker pull microsoft/aci-helloworld
-docker images
-docker tag microsoft/aci-helloworld xdcontainerregistry.azurecr.io/aci-helloworld:v1 
-docker push xdcontainerregistry.azurecr.io/aci-helloworld
-az acr repository list -n xdContainerRegistry -o table  
-az acr repository show-tags -n xdContainerRegistry --repository aci-helloworld -o table
