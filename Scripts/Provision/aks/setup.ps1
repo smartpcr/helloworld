@@ -4,6 +4,7 @@ $aksProvisionFolder = $PSScriptRoot
 if (!$aksProvisionFolder) {
     $aksProvisionFolder = Get-Location
 }
+
 $scriptFolder = Split-Path (Split-Path $aksProvisionFolder -Parent) -Parent
 $moduleFolder = Join-Path $scriptFolder "modules"
 Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
@@ -94,8 +95,13 @@ LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'
 # run the following on windows
 # Start-Process powershell.exe "az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)"
 # run the following on mac
-az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName) &
+# az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName) &
 
 
 LogStep -Step 8 -Message "Setup helm integration, install cert manager..."
-helm init --upgrade 
+kubectl -n kube-system create sa tiller
+kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+helm init --service-account tiller --upgrade
+
+
+

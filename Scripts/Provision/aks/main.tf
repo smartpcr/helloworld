@@ -17,6 +17,7 @@ resource "azurerm_resource_group" "rg-aks" {
   tags     = "${var.tags}"
 }
 
+# this creates a cluster without RBAC support, useless!!
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = "${var.aks_name}"
   location            = "${azurerm_resource_group.rg.location}"
