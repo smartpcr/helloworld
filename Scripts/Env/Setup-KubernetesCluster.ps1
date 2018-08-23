@@ -10,7 +10,6 @@
 #>
 param([string] $EnvName = "dev")
 
-$ErrorActionPreference = "Stop"
 
 $envFolder = $PSScriptRoot
 if (!$envFolder) {
@@ -18,6 +17,8 @@ if (!$envFolder) {
 }
 $scriptFolder = Split-Path $envFolder -Parent
 $moduleFolder = Join-Path $scriptFolder "modules"
+$credentialFolder = Join-Path $envFolder "credential"
+$envCredentialFolder = Join-Path $credentialFolder $EnvName
 Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
 Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
@@ -25,8 +26,8 @@ Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle -Message "Setting up container registry for environment '$EnvName'..."
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $scriptFolder
-$rgName = $bootstrapValues.global.resourceGroup
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$rgName = $bootstrapValues.aks.resourceGroup
 $vaultName = $bootstrapValues.kv.name
 $aksClusterName = $bootstrapValues.aks.clusterName
 $dnsPrefix = $bootstrapValues.aks.dnsPrefix
@@ -35,31 +36,44 @@ $vmSize = $bootstrapValues.aks.vmSize
 $aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
 
-# login to azure 
-LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $scriptFolder
-
+LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
+az group create --name $rgName --location $bootstrapValues.aks.location | Out-Null
+LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
 $aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
+
+
+LogStep -Step 2 -Message "Ensure SSH key is present for linux vm access..."
+EnsureSshCert `
+    -VaultName $vaultName `
+    -CertName $bootstrapValues.aks.ssh_private_key `
+    -EnvName $EnvName `
+    -ScriptFolder $scriptFolder
+$aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.ssh_private_key).pub"
+$sshKeyData = Get-Content $aksCertPublicKeyFile
 
 # this took > 30 min!! Go grab a coffee.
 az aks create `
     --resource-group $rgName `
     --name $aksClusterName `
-    --generate-ssh-keys `
+    --ssh-key-value $sshKeyData `
     --dns-name-prefix $dnsPrefix `
     --node-count $nodeCount `
     --node-vm-size $vmSize `
     --service-principal $aksSpnAppId `
     --client-secret $aksSpnPwd
 
-# grant aks read access to acr
-aksSvcPrincipalAppId="$(az aks show -g $rgName -n $aksClusterName --query ""servicePrincipalProfile.clientId"" -o tsv)" 
-acrId="$(az acr show -n xdcontainerregistry -g $rgName --query ""id"" -o tsv)"
-az role assignment create --assignee $aksSvcPrincipalAppId --role Reader --scope $acrId
 
-# set acr secrets in AKS
+LogStep -Step 5 -Message "Ensure aks service principal has access to ACR..."
 $acrName = $bootstrapValues.acr.name
-$acrPwdSecretName = $bootstrapValues.acr.passwordSecretName
-$acrEmail = $bootstrapValues.acr.email
+$acrResourceGroup = $bootstrapValues.acr.resourceGroup
+$acrFound = "$(az acr list -g $acrResourceGroup --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
+if (!$acrFound) {
+    throw "Please setup ACR first by running Setup-ContainerRegistry.ps1 script"
+}
+$acrId = "$(az acr show --name $acrName --query id --output tsv)"
+$aksSpnName = $bootstrapValues.aks.servicePrincipal
+$aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
+az role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
 
 
 ACR_NAME="xdcontainerregistry"
