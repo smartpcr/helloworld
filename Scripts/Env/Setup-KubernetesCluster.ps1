@@ -64,6 +64,9 @@ $sshKeyData = Get-Content $aksCertPublicKeyFile
 
 LogStep -Step 3 -Message "Creating AKS cluster '$aksClusterName' within resource group '$rgName'..."
 # this took > 30 min!! Go grab a coffee.
+# az aks delete `
+#     --resource-group $rgName `
+#     --name $aksClusterName --yes 
 az aks create `
     --resource-group $rgName `
     --name $aksClusterName `
@@ -93,7 +96,7 @@ az role assignment create --assignee $aksSpn.appId --scope $acrId --role contrib
 
 LogStep -Step 5 -Message "Set AKS context..."
 # rm -rf /Users/xiaodongli/.kube/config
-az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
 $devEnvFolder = Join-Path $envFolder $EnvName
 $dashboardAuthYamlFile = Join-Path $devEnvFolder "dashboard-admin.yaml"
 kubectl apply -f $dashboardAuthYamlFile

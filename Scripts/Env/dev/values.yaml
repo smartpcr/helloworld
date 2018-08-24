@@ -5,9 +5,11 @@ servicePrincipalCertThumbprint: BB55547547C2689A079B11A94914AA87046A57F9
 aksDnsPrefix: hw-aks-xd
 servicePrincipalAppId: d043778f-9da7-4e12-b7a2-bb61f5699e2a
 owner: xd
+aksClientAppId: b91a3131-7872-4f60-a5fa-d83d60a3cb68
 aksServicePrincipalAppId: 831e0d3c-26ee-4ba5-a073-59402b1d442e
 subscriptionName: RRD MSDN Premium
 helmBlobContainerName: helm
 subscriptionAlias: rrdprem
 acrOwnerEmail: xiaodoli@microsoft.com
 envName: dev
+

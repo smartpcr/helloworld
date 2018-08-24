@@ -136,7 +136,7 @@ if ($bootstrapValues.global.aks -eq $true) {
     Get-OrCreateAksClientApp -EnvRootFolder $envFolder -EnvName $EnvName | Out-Null
 
     $aksClientApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
-    $values.clientAppId = $aksClientApp.appId
+    $values.aksClientAppId = $aksClientApp[0].appId
 }
 
 # write to values.yaml
