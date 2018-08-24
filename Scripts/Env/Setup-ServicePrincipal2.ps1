@@ -147,3 +147,4 @@ $values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
 # LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder
+LogTitle "Remember to manually grant aad app request before creating aks cluster!"

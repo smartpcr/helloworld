@@ -149,7 +149,12 @@ function Get-OrCreateAksClientApp {
     }
 
     $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ClientAppPwdSecretName
-    $spFound = az ad sp list --display-name $ClientAppName | ConvertFrom-Json
+    $spFound = az ad app list --display-name $ClientAppName | ConvertFrom-Json
+    if ($spFound -and $spFound -is [array]) {
+        if ([array]$spFound.Count -gt 1) {
+            throw "Duplicated client app found for '$ClientAppName'"
+        }
+    }
     if ($spFound) {
         az ad sp credential reset --name $ClientAppName --password $servicePrincipalPwd.value 
         return $sp

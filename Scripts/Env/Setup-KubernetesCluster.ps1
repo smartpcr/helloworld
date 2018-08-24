@@ -97,11 +97,17 @@ az role assignment create --assignee $aksSpn.appId --scope $acrId --role contrib
 LogStep -Step 5 -Message "Set AKS context..."
 # rm -rf /Users/xiaodongli/.kube/config
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
+LogInfo -Message "Grant dashboard access..."
 $devEnvFolder = Join-Path $envFolder $EnvName
 $dashboardAuthYamlFile = Join-Path $devEnvFolder "dashboard-admin.yaml"
 kubectl apply -f $dashboardAuthYamlFile
+
+LogInfo -Message "Grant current user as cluster admin..."
+$aadUser = az ad user show --upn-or-object-id $bootstrapValues.aks.ownerUpn | ConvertFrom-Json
 $userAuthYamlFile = Join-Path $devEnvFolder "user-admin.yaml"
+ReplaceValuesInYamlFile -YamlFile $userAuthYamlFile -PlaceHolder "ownerUpn" -Value $aadUser.objectId
 kubectl apply -f $userAuthYamlFile
+
 $kubeContextName = "$(kubectl config current-context)" 
 LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
 
@@ -110,5 +116,8 @@ LogStep -Step 6 -Message "Setup helm integration..."
 kubectl -n kube-system create sa tiller
 kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
 helm init --service-account tiller --upgrade
+LogInfo -Message "Relogin to kubernetes as current user..."
+az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
 
-az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)
+
+# az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)

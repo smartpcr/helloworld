@@ -12,4 +12,5 @@ helmBlobContainerName: helm
 subscriptionAlias: rrdprem
 acrOwnerEmail: xiaodoli@microsoft.com
 envName: dev
-
+aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
+aksAadGroupAlias: 

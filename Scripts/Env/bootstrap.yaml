@@ -54,6 +54,8 @@ aks:
     clientAppName: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-client"
     clientAppId: "{{ .Values.aksClientAppId }}"
     clientAppPassword: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-client-pwd"
+    ownerUpn: "{{ .Values.aksOwnerAadUpn }}"
+    groupAlias: "{{ .Values.aksAadGroupAlias }}"
     nodeCount: 3
     vmSize: Standard_D1_v2
     ssh_pubblic_key: "{{ .Values.productName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-ssh-pub"
