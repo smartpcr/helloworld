@@ -23,7 +23,7 @@ LogTitle "Setup Terraform for Environment '$EnvName'"
 
 
 LogStep -Step 1 -Message "load environment yaml settings from Env/${EnvName}..."
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvFolder
 $spnName = $bootstrapValues.terraform.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.terraform.resourceGroup

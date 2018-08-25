@@ -20,7 +20,7 @@ LogTitle -Message "Deploy Image '$imageName' with Tag '$imageTag' in Environment
 
 
 LogStep -Step 1 -Message "load environment yaml settings from Env/${EnvName}..."
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvFolder
 $acrName = $bootstrapValues.acr.name
 $rgName = $bootstrapValues.acr.resourceGroup
 $acrLoginServer = "$(az acr show --resource-group $rgName --name $acrName --query "{acrLoginServer:loginServer}" --output tsv)"

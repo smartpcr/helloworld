@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: keyvault-demo
+spec:
+  containers:
+  - name: keyvault-demo
+    image: nginx
+    volumeMounts:
+    - name: test
+      mountPath: /kvmnt
+      readOnly: true
+  volumes:
+  - name: test
+    flexVolume:
+      driver: "azure/kv"
+      secretRef:
+        name: kvcreds
+      options:
+        usepodidentity: "false"
+        resourcegroup: "rrdprem-rg"
+        keyvaultname: "rrdprem-kv"
+        keyvaultobjectname: "appsecret1"
+        keyvaultobjecttype: secret 
+        subscriptionid: "6abf90e5-4af2-4c86-83aa-5352df938db5"
+        tenantid: "f7215caf-efd9-4bac-89c5-a3cf109a9f18"

@@ -27,7 +27,7 @@ Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle -Message "Setting up container registry for environment '$EnvName'..."
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 $rgName = $bootstrapValues.aks.resourceGroup
 $vaultName = $bootstrapValues.kv.name
 $aksClusterName = $bootstrapValues.aks.clusterName

@@ -19,7 +19,7 @@ LogTitle -Message "Build Image '$imageName' with tag '$imageTag' in Environment 
 
 
 LogStep -Step 1 -Message "load environment yaml settings from Env/${EnvName}..." 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvFolder
 LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
 $acrName = $bootstrapValues.acr.name
 $rgName = $bootstrapValues.acr.resourceGroup

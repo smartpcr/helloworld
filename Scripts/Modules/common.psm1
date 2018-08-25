@@ -81,7 +81,7 @@ function Get-OrCreateServicePrincipalUsingPassword {
         return $sp;
     }
 
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $ScriptFolder
 
     $rmContext = LoginAzureAsUser -SubscriptionName $bootstrapValues.global.subscriptionName
     $rgName = $bootstrapValues.global.resourceGroup
@@ -190,7 +190,7 @@ function Connect-ToAzure {
         [string] $ScriptFolder
     )
     
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $ScriptFolder
     $thumbprint = $bootstrapValues.global.servicePrincipalCertThumbprint
     $spAppId = $bootstrapValues.global.servicePrincipalAppId
 
@@ -221,7 +221,7 @@ function InstallServicePrincipalCert {
         [string] $ScriptFolder
     )
 
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $ScriptFolder
     $spnName = $bootstrapValues.global.servicePrincipal
     $vaultName = $bootstrapValues.kv.name
 

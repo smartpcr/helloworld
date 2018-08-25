@@ -7,19 +7,20 @@ Install-Module powershell-yaml
 function Get-EnvironmentSettings {
     param(
         [string] $EnvName = "dev",
-        [string] $ScriptFolder
+        [string] $EnvRootFolder
     )
     
-    $values = Get-Content "$ScriptFolder\values.yaml" -Raw | ConvertFrom-Yaml
+    $values = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | ConvertFrom-Yaml
     if ($EnvName) {
-        $envValueYamlFile = "$ScriptFolder\$EnvName\values.yaml"
+        $envFolder = Join-Path $EnvRootFolder $EnvName
+        $envValueYamlFile =  Join-Path $envFolder "values.yaml"
         if (Test-Path $envValueYamlFile) {
             $envValues = Get-Content $envValueYamlFile -Raw | ConvertFrom-Yaml
             Copy-YamlObject -fromObj $envValues -toObj $values
         }
     }
 
-    $bootstrapTemplate = Get-Content "$ScriptFolder\bootstrap.yaml" -Raw
+    $bootstrapTemplate = Get-Content "$EnvRootFolder\bootstrap.yaml" -Raw
     $bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $values
     $bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml
 

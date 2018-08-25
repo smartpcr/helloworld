@@ -16,7 +16,7 @@ Import-Module "$ScriptFolder/modules/VaultUtil.psm1" -Force
 Import-Module "$ScriptFolder/modules/TerraformUtil.psm1" -Force
 
 Write-Host "1) load environment yaml settings from Env/${EnvName}..." -ForegroundColor Green
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvFolder
 $acrName = $bootstrapValues.acr.name
 $spnName = $bootstrapValues.global.servicePrincipal
 $rgName = $bootstrapValues.global.resourceGroup

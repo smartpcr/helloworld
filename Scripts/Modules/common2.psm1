@@ -91,6 +91,28 @@ function Get-OrCreatePasswordInVault2 {
     return $res 
 }
 
+
+function Get-OrCreateServicePrincipalUsingPassword {
+    param(
+        [string] $ServicePrincipalName,
+        [string] $ServicePrincipalPwdSecretName,
+        [string] $VaultName
+    )
+
+    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
+    $spFound = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+    if ($spFound) {
+        az ad sp credential reset --name $ServicePrincipalName --password $servicePrincipalPwd.value 
+        return $sp
+    }
+
+    az ad sp create-for-rbac `
+        --name $ServicePrincipalName `
+        --password $($servicePrincipalPwd.value) | Out-Null
+    $sp = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+    return $sp 
+}
+
 function Get-OrCreateAksServicePrincipal {
     param(
         [string] $ServicePrincipalName,
@@ -107,7 +129,7 @@ function Get-OrCreateAksServicePrincipal {
         return $sp
     }
 
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvRootFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvRootFolder
     $rgName = $bootstrapValues.aks.resourceGroup
     $azAccount = az account show | ConvertFrom-Json
     $subscriptionId = $azAccount.id
@@ -138,7 +160,7 @@ function Get-OrCreateAksClientApp {
         [string] $EnvName
     )
 
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $EnvRootFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvRootFolder
     $ClientAppName = $bootstrapValues.aks.clientAppName
     $ClientAppPwdSecretName = $bootstrapValues.aks.clientAppPassword
     $VaultName = $bootstrapValues.kv.name
@@ -196,7 +218,7 @@ function LoginAsServicePrincipal {
         [string] $ScriptFolder
     )
     
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $ScriptFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $ScriptFolder
     $vaultName = $bootstrapValues.kv.name
     $spnName = $bootstrapValues.global.servicePrincipal
     $certName = $spnName
@@ -205,7 +227,7 @@ function LoginAsServicePrincipal {
     $privateKeyFilePath = "$ScriptFolder/credential/$certName.key"
     if (-not (Test-Path $privateKeyFilePath)) {
         LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
-        DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $ScriptFolder
+        DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -EnvRootFolder $ScriptFolder
     }
     
     LogInfo -Message "Login as service principal '$spnName'"

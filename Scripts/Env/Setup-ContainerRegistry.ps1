@@ -15,7 +15,7 @@ SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle -Message "Setting Up Container Registry for Environment '$EnvName'"
 
 LogStep -Step 1 -Message "Retrieving environment settings for '$EnvName'..."
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 $rgName = $bootstrapValues.acr.resourceGroup
 $location = $bootstrapValues.acr.location
 az group create --name $rgName --location $location | Out-Null

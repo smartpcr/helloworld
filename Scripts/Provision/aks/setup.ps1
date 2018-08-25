@@ -18,7 +18,7 @@ LogTitle "Setup AKS Cluster for Environment '$EnvName'"
 
 
 LogStep -Step 1 -Message "Retrieving settings for environment '$EnvName'..."
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 $akstfvarFile = Join-Path $aksProvisionFolder "terraform.tfvars"
 $credentialFolder = Join-Path $envFolder "credential"
 $envCredentialFolder = Join-Path $credentialFolder $EnvName

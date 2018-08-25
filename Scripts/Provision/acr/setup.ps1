@@ -17,7 +17,7 @@ $envFolder = Join-Path $scriptFolder "Env"
 
 
 Write-Host "1) Retrieving settings for environment '$EnvName'..." -ForegroundColor Green
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 $credentialFolder = Join-Path $envFolder "credential"
 if (-not (Test-Path $credentialFolder)) {
     New-Item -Path $credentialFolder -ItemType Directory -Force | Out-Null
@@ -34,7 +34,7 @@ SetTerraformValue -valueFile $acrtfvarFile -name "acr_name" -value $bootstrapVal
 
 
 Write-Host "1) Retrieving settings for environment '$EnvName'..." -ForegroundColor Green
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -ScriptFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 $credentialFolder = Join-Path $envFolder "credential"
 $envCredentialFolder = Join-Path $credentialFolder $EnvName
 $credentialTfFile = Join-Path $envCredentialFolder "acr.tfvars"

@@ -23,7 +23,7 @@ Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle "Setting service principal for environment '$EnvName'..."
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $scriptFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $scriptFolder
 $spnName = $bootstrapValues.global.servicePrincipal
 $vaultName = $bootstrapValues.kv.name
 $rgName = $bootstrapValues.global.resourceGroup

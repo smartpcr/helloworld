@@ -23,7 +23,7 @@ Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle "Setting Up Service Principal for Environment $EnvName" 
 
-$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -ScriptFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $envFolder
 
 # login and set subscription 
 LogStep -Step 1 -Message "Login to azure and set subscription to '$($bootstrapValues.global.subscriptionName)'..." 
