@@ -24,7 +24,6 @@ SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle "Setting Up KV Flex Volume for Environment $EnvName" 
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $envFolder
-$clusterContextName = $bootstrapValues.aks.clusterName
 
 LogStep -Step 1 -Message "Login to azure and set subscription to '$($bootstrapValues.global.subscriptionName)'..." 
 $azureAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
@@ -55,19 +54,25 @@ kubectl apply -f "https://raw.githubusercontent.com/Azure/kubernetes-keyvault-fl
 LogStep -Step 5 -Message "Create KV secret using spn '$($spn.displayName)' and its password '***'..."
 $kvCredName = "kvcreds"
 $spnPwdSecret = az keyvault secret show --vault-name $bootstrapValues.kv.name --name $bootstrapValues.kvSample.servicePrincipalPwd | ConvertFrom-Json
-kubectl create secret generic $kvCredName --from-literal clientid=$spn.appId --from-literal clientsecret=$spnPwdSecret.value
+kubectl create secret generic $kvCredName --from-literal clientid=$spn.appId --from-literal clientsecret=$spnPwdSecret.value --type "azure/kv" --dry-run -o yaml | kubectl apply -f -
+
 
 LogStep -Step 6 -Message "Deploy KV access sample application..."
 $secretName = "appsecret1"
 $secretValue = "TopSecret!"
-az keyvault secret set --vault-name $bootstrapValues.kv.name --name $secretName --value $secretValue | Out-Null
+$kvSecret = az keyvault secret set --vault-name $bootstrapValues.kv.name --name $secretName --value $secretValue | ConvertFrom-Json
+$secretVersion = $kvSecret.id.Substring($kvSecret.id.LastIndexOf("/") + 1)
+$podTplFile = Join-Path $kvSampleFolder "TestPod.tpl"
 $podYamlFile = Join-Path $kvSampleFolder "TestPod.yml"
+Copy-Item -Path $podTplFile -Destination $podYamlFile -Force 
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "tenantId" -Value $bootstrapValues.global.tenantId
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "subscriptionId" -Value $azureAccount.id
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "rgName" -Value $bootstrapValues.kv.resourceGroup
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "vaultName" -Value $bootstrapValues.kv.name
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "secretName" -Value $secretName
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "kvSecrets" -Value $kvCredName
+ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "version" -Value $secretVersion
+
 kubectl apply -f $podYamlFile 
 
 
