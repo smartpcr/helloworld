@@ -97,7 +97,7 @@ else {
 
 
 if ($bootstrapValues.global.aks -eq $true) {
-    LogStep -Step 5 -Message "Creating AKS service principal '$($bootstrapValues.aks.servicePrincipal)'..." 
+    LogStep -Step 5 -Message "Ensuring AKS service principal '$($bootstrapValues.aks.servicePrincipal)' is created..." 
     $aksrg = az group list --query "[?name=='$($bootstrapValues.aks.resourceGroup)']" | ConvertFrom-Json
     if (!$aksrg) {
         az group create --name $bootstrapValues.aks.resourceGroup --location $bootstrapValues.aks.location | Out-Null
@@ -114,7 +114,13 @@ if ($bootstrapValues.global.aks -eq $true) {
     
     $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
     LogInfo -Message "set groupMembershipClaims to [All] to spn '$aksSpnName'"
-    az ad app update --id $aksSpn.appId --set groupMembershipClaims="All" | Out-Null
+    $aksServerApp = az ad app show --id $aksSpn.appId | ConvertFrom-Json
+    if ($aksServerApp.additionalProperties -and $aksServerApp.additionalProperties.groupMembershipClaims -eq "All") {
+        LogInfo -Message "AKS server app manifest property 'groupMembershipClaims' is already set to true"
+    }
+    else {
+        az ad app update --id $aksSpn.appId --set groupMembershipClaims=All | Out-Null
+    }
     
     # write to values.yaml
     $values.aksServicePrincipalAppId = $aksSpn.appId
@@ -132,7 +138,7 @@ if ($bootstrapValues.global.aks -eq $true) {
         --certificate-permissions get list update delete `
         --secret-permissions get list set delete | Out-Null
 
-    LogInfo -Message "Creating AKS Client App '$($bootstrapValues.aks.clientAppName)'..."
+    LogInfo -Message "Ensuring AKS Client App '$($bootstrapValues.aks.clientAppName)' is created..."
     Get-OrCreateAksClientApp -EnvRootFolder $envFolder -EnvName $EnvName | Out-Null
 
     $aksClientApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json

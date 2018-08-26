@@ -122,11 +122,15 @@ function Get-OrCreateAksServicePrincipal {
         [string] $EnvName
     )
 
+    $currentEnvFolder = Join-Path $EnvRootFolder $EnvName
+    $spnAuthJsonFile = Join-Path $currentEnvFolder "aks-spn-auth.json"
     $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
     $spFound = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     if ($spFound) {
         az ad sp credential reset --name $ServicePrincipalName --password $servicePrincipalPwd.value 
-        return $sp
+        $aksSpn = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+        az ad app update --id $aksSpn.appId --required-resource-accesses $spnAuthJsonFile | Out-Null
+        return $aksSpn
     }
 
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvRootFolder
@@ -134,8 +138,6 @@ function Get-OrCreateAksServicePrincipal {
     $azAccount = az account show | ConvertFrom-Json
     $subscriptionId = $azAccount.id
     $scopes = "/subscriptions/$subscriptionId/resourceGroups/$($rgName)"
-    $currentEnvFolder = Join-Path $EnvRootFolder $EnvName
-    $spnAuthJsonFile = Join-Path $currentEnvFolder "aks-spn-auth.json"
     
     LogInfo -Message "Granting spn '$ServicePrincipalName' 'Contributor' role to resource group '$rgName'"
     az ad sp create-for-rbac `
@@ -146,11 +148,11 @@ function Get-OrCreateAksServicePrincipal {
         --scopes=$scopes `
         --required-resource-accesses $spnAuthJsonFile | Out-Null
     
-    $sp = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
+    $aksSpn = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
 
     LogInfo -Message "Grant required resource access for aad app..."
-    az ad app update --id $sp.appId --required-resource-accesses $spnAuthJsonFile | Out-Null
-    return $sp 
+    az ad app update --id $aksSpn.appId --required-resource-accesses $spnAuthJsonFile | Out-Null
+    return $aksSpn 
 }
 
 
@@ -162,15 +164,19 @@ function Get-OrCreateAksClientApp {
 
     $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvRootFolder
     $ClientAppName = $bootstrapValues.aks.clientAppName
-    $ClientAppPwdSecretName = $bootstrapValues.aks.clientAppPassword
-    $VaultName = $bootstrapValues.kv.name
 
     $aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
     if (!$aksSpn) {
         throw "Cannot create client app when server app with name '$($bootstrapValues.aks.servicePrincipal)' is not found!"
     }
 
-    $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ClientAppPwdSecretName
+    LogInfo -Message "Retrieving replyurl from server app..."
+    $serverAppReplyUrls = $aksSpn.replyUrls
+    $clientAppRedirectUrl = $serverAppReplyUrls
+    if ($serverAppReplyUrls -is [array] -and ([array]$serverAppReplyUrls).Length -gt 0) {
+        $clientAppRedirectUrl = [array]$serverAppReplyUrls[0]
+    }
+
     $spFound = az ad app list --display-name $ClientAppName | ConvertFrom-Json
     if ($spFound -and $spFound -is [array]) {
         if ([array]$spFound.Count -gt 1) {
@@ -178,11 +184,13 @@ function Get-OrCreateAksClientApp {
         }
     }
     if ($spFound) {
-        az ad sp credential reset --name $ClientAppName --password $servicePrincipalPwd.value 
+        LogInfo -Message "Client app '$ClientAppName' already exists."
+        az ad app update --id $spFound.appId --reply-urls "$clientAppRedirectUrl"
         return $sp
     }
     
-    LogInfo -Message "Granting client app '$ClientAppName' and grant access to server app '$($bootstrapValues.aks.servicePrincipal)'"
+    LogInfo -Message "Creating client app '$ClientAppName'..."
+    LogInfo -Message "Granting client app '$ClientAppName' access to server app '$($bootstrapValues.aks.servicePrincipal)'"
     $resourceAccess = "[{`"resourceAccess`": [{`"id`": `"318f4279-a6d6-497a-8c69-a793bda0d54f`", `"type`": `"Scope`"}],`"resourceAppId`": `"$($aksSpn.appId)`"}]" 
     $currentEnvFolder = Join-Path $EnvRootFolder $EnvName
     $clientAppResourceAccessJsonFile = Join-Path $currentEnvFolder "aks-client-auth.json"
@@ -191,6 +199,7 @@ function Get-OrCreateAksClientApp {
     az ad app create `
         --display-name $ClientAppName `
         --native-app `
+        --reply-urls "$clientAppRedirectUrl" `
         --required-resource-accesses @$clientAppResourceAccessJsonFile | Out-Null
     
     $sp = az ad sp list --display-name $ClientAppName | ConvertFrom-Json

@@ -25,7 +25,8 @@ Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
-LogTitle -Message "Setting up container registry for environment '$EnvName'..."
+LogTitle -Message "Setting up AKS cluster for environment '$EnvName'..."
+
 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 $rgName = $bootstrapValues.aks.resourceGroup
@@ -47,8 +48,8 @@ $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
 
 
 LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
-az group create --name $rgName --location $bootstrapValues.aks.location | Out-Null
 LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
+az group create --name $rgName --location $bootstrapValues.aks.location | Out-Null
 $aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
 
 
@@ -62,23 +63,33 @@ $aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.s
 $sshKeyData = Get-Content $aksCertPublicKeyFile
 
 
-LogStep -Step 3 -Message "Creating AKS cluster '$aksClusterName' within resource group '$rgName'..."
+LogStep -Step 3 -Message "Ensure AKS cluster '$aksClusterName' within resource group '$rgName' is created..."
 # this took > 30 min!! Go grab a coffee.
 # az aks delete `
 #     --resource-group $rgName `
 #     --name $aksClusterName --yes 
-az aks create `
-    --resource-group $rgName `
-    --name $aksClusterName `
-    --ssh-key-value $sshKeyData `
-    --enable-rbac `
-    --dns-name-prefix $dnsPrefix `
-    --node-count $nodeCount `
-    --node-vm-size $vmSize `
-    --aad-server-app-id $aksSpnAppId `
-    --aad-server-app-secret $aksSpnPwd `
-    --aad-client-app-id $aksClientAppId `
-    --aad-tenant-id $tenantId
+$aksClusters = az aks list --resource-group $rgName --query "[?name == '$($aksClusterName)']" | ConvertFrom-Json
+if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
+    LogInfo -Message "Creating AKS Cluster '$aksClusterName'..."
+    $tags = "environment=$EnvName;responsible=$($bootstrapValues.aks.ownerUpn)"
+    az aks create `
+        --resource-group $rgName `
+        --name $aksClusterName `
+        --admin-username "azureuser" `
+        --ssh-key-value $sshKeyData `
+        --enable-rbac `
+        --dns-name-prefix $dnsPrefix `
+        --node-count $nodeCount `
+        --node-vm-size $vmSize `
+        --aad-server-app-id $aksSpnAppId `
+        --aad-server-app-secret $aksSpnPwd `
+        --aad-client-app-id $aksClientAppId `
+        --aad-tenant-id $tenantId `
+        --tags $tags
+}
+else {
+    LogInfo -Message "AKS cluster '$aksClusterName' is already created."
+}
 
 
 LogStep -Step 4 -Message "Ensure aks service principal has access to ACR..."
@@ -116,7 +127,7 @@ LogStep -Step 6 -Message "Setup helm integration..."
 kubectl -n kube-system create sa tiller
 kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
 helm init --service-account tiller --upgrade
-LogInfo -Message "Relogin to kubernetes as current user..."
+LogInfo -Message "Set kubernetes context..."
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
 
 

@@ -29,7 +29,8 @@ git-credential-manager install
 
 echo "installing azure cli"
 brew install azure-cli
-az -v  
+brew upgrade azure-cli 
+az -v  # make sure version is greater then 2.0.36
 
 echo "installing kubernetes-cli"
 brew install kubectl
