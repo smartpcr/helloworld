@@ -65,6 +65,7 @@ $secretVersion = $kvSecret.id.Substring($kvSecret.id.LastIndexOf("/") + 1)
 $podTplFile = Join-Path $kvSampleFolder "TestPod.tpl"
 $podYamlFile = Join-Path $kvSampleFolder "TestPod.yml"
 Copy-Item -Path $podTplFile -Destination $podYamlFile -Force 
+LogInfo -Message "Note: the properties under options have to use lowercase and their order cannot be changed!"
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "tenantId" -Value $bootstrapValues.global.tenantId
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "subscriptionId" -Value $azureAccount.id
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "rgName" -Value $bootstrapValues.kv.resourceGroup

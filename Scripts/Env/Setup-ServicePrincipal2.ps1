@@ -109,7 +109,7 @@ if ($bootstrapValues.global.aks -eq $true) {
         -ServicePrincipalName $aksSpnName `
         -ServicePrincipalPwdSecretName $askSpnPwdSecretName `
         -VaultName $vaultName `
-        -ScriptFolder $envFolder `
+        -EnvRootFolder $envFolder `
         -EnvName $EnvName | Out-Null
     
     $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
