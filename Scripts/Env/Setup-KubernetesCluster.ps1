@@ -28,34 +28,25 @@ SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle -Message "Setting up AKS cluster for environment '$EnvName'..."
 
 
+LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
-$rgName = $bootstrapValues.aks.resourceGroup
-$vaultName = $bootstrapValues.kv.name
-$aksClusterName = $bootstrapValues.aks.clusterName
-$dnsPrefix = $bootstrapValues.aks.dnsPrefix
-$nodeCount = $bootstrapValues.aks.nodeCount
-$vmSize = $bootstrapValues.aks.vmSize
-$aksSpnAppId = $bootstrapValues.aks.servicePrincipalAppId
-if (!$aksSpnAppId) {
+$azAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName 
+$aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
+if (!$aksSpn) {
     throw "AKS service principal is not setup yet"
 }
-$aksClientAppId = $bootstrapValues.aks.clientAppId
-if (!$aksClientAppId) {
+$aksClientApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
+if (!$aksClientApp) {
     throw "AKS client app is not setup yet"
 }
-$tenantId = $bootstrapValues.global.tenantId
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
-
-
-LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
-LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
-az group create --name $rgName --location $bootstrapValues.aks.location | Out-Null
-$aksSpnPwd = "$(az keyvault secret show --vault-name $vaultName --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
+$aksSpnPwd = "$(az keyvault secret show --vault-name $bootstrapValues.kv.name --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
+az group create --name $bootstrapValues.aks.resourceGroup --location $bootstrapValues.aks.location | Out-Null
 
 
 LogStep -Step 2 -Message "Ensure SSH key is present for linux vm access..."
 EnsureSshCert `
-    -VaultName $vaultName `
+    -VaultName $bootstrapValues.kv.name `
     -CertName $bootstrapValues.aks.ssh_private_key `
     -EnvName $EnvName `
     -ScriptFolder $scriptFolder
@@ -63,32 +54,32 @@ $aksCertPublicKeyFile = Join-Path $envCredentialFolder "$($bootstrapValues.aks.s
 $sshKeyData = Get-Content $aksCertPublicKeyFile
 
 
-LogStep -Step 3 -Message "Ensure AKS cluster '$aksClusterName' within resource group '$rgName' is created..."
+LogStep -Step 3 -Message "Ensure AKS cluster '$($bootstrapValues.aks.clusterName)' within resource group '$($bootstrapValues.aks.resourceGroup)' is created..."
 # this took > 30 min!! Go grab a coffee.
 # az aks delete `
-#     --resource-group $rgName `
-#     --name $aksClusterName --yes 
-$aksClusters = az aks list --resource-group $rgName --query "[?name == '$($aksClusterName)']" | ConvertFrom-Json
+#     --resource-group $bootstrapValues.aks.resourceGroup `
+#     --name $bootstrapValues.aks.clusterName --yes 
+$aksClusters = az aks list --resource-group $bootstrapValues.aks.resourceGroup --query "[?name == '$($bootstrapValues.aks.clusterName)']" | ConvertFrom-Json
 if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
-    LogInfo -Message "Creating AKS Cluster '$aksClusterName'..."
+    LogInfo -Message "Creating AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
     $tags = "environment=$EnvName;responsible=$($bootstrapValues.aks.ownerUpn)"
     az aks create `
-        --resource-group $rgName `
-        --name $aksClusterName `
+        --resource-group $bootstrapValues.aks.resourceGroup `
+        --name $bootstrapValues.aks.clusterName `
         --admin-username "azureuser" `
         --ssh-key-value $sshKeyData `
         --enable-rbac `
-        --dns-name-prefix $dnsPrefix `
-        --node-count $nodeCount `
-        --node-vm-size $vmSize `
-        --aad-server-app-id $aksSpnAppId `
+        --dns-name-prefix $bootstrapValues.aks.dnsPrefix `
+        --node-count $bootstrapValues.aks.nodeCount `
+        --node-vm-size $bootstrapValues.aks.vmSize `
+        --aad-server-app-id $aksSpn.appId `
         --aad-server-app-secret $aksSpnPwd `
-        --aad-client-app-id $aksClientAppId `
-        --aad-tenant-id $tenantId `
+        --aad-client-app-id $aksClientApp.appId `
+        --aad-tenant-id $azAccount.tenantId `
         --tags $tags
 }
 else {
-    LogInfo -Message "AKS cluster '$aksClusterName' is already created."
+    LogInfo -Message "AKS cluster '$($bootstrapValues.aks.clusterName)' is already created."
 }
 
 

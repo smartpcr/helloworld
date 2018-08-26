@@ -143,15 +143,15 @@ function Get-OrCreateAksServicePrincipal {
     az ad sp create-for-rbac `
         --name $ServicePrincipalName `
         --password $($servicePrincipalPwd.value) `
-        --identifier-uris "http://$ServicePrincipalName" `
         --role="Contributor" `
-        --scopes=$scopes `
-        --required-resource-accesses $spnAuthJsonFile | Out-Null
+        --scopes=$scopes | Out-Null
     
     $aksSpn = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
 
     LogInfo -Message "Grant required resource access for aad app..."
     az ad app update --id $aksSpn.appId --required-resource-accesses $spnAuthJsonFile | Out-Null
+    az ad app update --id $aksSpn.appId --reply-urls "http://$($ServicePrincipalName)" | Out-Null
+    
     return $aksSpn 
 }
 

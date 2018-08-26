@@ -26,8 +26,8 @@ LogInfo -Message "Ensure container registry with name '$acrName' is setup for su
 
 # use ACR
 LogStep -Step 2 -Message "Ensure ACR with name '$acrName' is setup..."
-$acrFound = "$(az acr list -g $rgName --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
-if (!$acrFound) {
+$acrFound = "$(az acr list -g $rgName --query ""[?name=='$acrName']"" --query [].name -o tsv)"
+if (!$acrFound -or $acrFound -ne $acrName) {
     LogInfo -Message "Creating container registry $acrName..."
     az acr create -g $rgName -n $acrName --sku Basic | Out-Null
 }

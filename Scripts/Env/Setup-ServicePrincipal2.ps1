@@ -29,35 +29,28 @@ $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $env
 LogStep -Step 1 -Message "Login to azure and set subscription to '$($bootstrapValues.global.subscriptionName)'..." 
 $azureAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
 
-$spnName = $bootstrapValues.global.servicePrincipal
-$vaultName = $bootstrapValues.kv.name
-$rgName = $bootstrapValues.global.resourceGroup
-$subscriptionId = $azureAccount.id 
-$currentEnvFolder = Join-Path $envFolder $EnvName
-$devValueYamlFile = Join-Path $currentEnvFolder "values.yaml"
-$values = Get-Content $devValueYamlFile -Raw | ConvertFrom-Yaml
 
 # create resource group 
-LogStep -Step 2 -Message "Creating resource group '$($rgName)' at location '$($bootstrapValues.global.location)'..."
-$rgGroups = az group list --query "[?name=='$rgName']" | ConvertFrom-Json
+LogStep -Step 2 -Message "Creating resource group '$($bootstrapValues.global.resourceGroup)' at location '$($bootstrapValues.global.location)'..."
+$rgGroups = az group list --query "[?name=='$($bootstrapValues.global.resourceGroup)']" | ConvertFrom-Json
 if (!$rgGroups -or $rgGroups.Count -eq 0) {
-    LogInfo -Message "Creating resource group '$rgName' in location '$($bootstrapValues.global.location)'"
-    az group create --name $rgName --location $bootstrapValues.global.location | Out-Null
+    LogInfo -Message "Creating resource group '$($bootstrapValues.global.resourceGroup)' in location '$($bootstrapValues.global.location)'"
+    az group create --name $bootstrapValues.global.resourceGroup --location $bootstrapValues.global.location | Out-Null
 }
 
 # create key vault 
-LogStep -Step 3 -Message "Creating key vault '$vaultName' within resource group '$($bootstrapValues.kv.resourceGroup)' at location '$($bootstrapValues.kv.location)'..."
+LogStep -Step 3 -Message "Creating key vault '$($bootstrapValues.kv.name)' within resource group '$($bootstrapValues.kv.resourceGroup)' at location '$($bootstrapValues.kv.location)'..."
 $kvrg = az group list --query "[?name=='$($bootstrapValues.kv.resourceGroup)']" | ConvertFrom-Json
 if (!$kvrg) {
     az group create --name $bootstrapValues.kv.resourceGroup --location $bootstrapValues.kv.location | Out-Null
 }
-$kvs = az keyvault list --resource-group $bootstrapValues.kv.resourceGroup --query "[?name=='$vaultName']" | ConvertFrom-Json
+$kvs = az keyvault list --resource-group $bootstrapValues.kv.resourceGroup --query "[?name=='$($bootstrapValues.kv.name)']" | ConvertFrom-Json
 if ($kvs.Count -eq 0) {
-    LogInfo -Message "Creating Key Vault $vaultName..." 
+    LogInfo -Message "Creating Key Vault $($bootstrapValues.kv.name)..." 
     
     az keyvault create `
         --resource-group $bootstrapValues.kv.resourceGroup `
-        --name $vaultName `
+        --name $($bootstrapValues.kv.name) `
         --sku standard `
         --location $bootstrapValues.global.location `
         --enabled-for-deployment $true `
@@ -65,26 +58,26 @@ if ($kvs.Count -eq 0) {
         --enabled-for-template-deployment $true | Out-Null
 }
 else {
-    LogInfo -Message "Key vault $($vaultName) is already created" 
+    LogInfo -Message "Key vault $($bootstrapValues.kv.name) is already created" 
 }
 
 # create service principal (SPN) for cluster provision
-LogStep -Step 4 -Message "Creating service principal '$($spnName)'..." 
-$sp = az ad sp list --display-name $spnName | ConvertFrom-Json
+LogStep -Step 4 -Message "Creating service principal '$($bootstrapValues.global.servicePrincipal)'..." 
+$sp = az ad sp list --display-name $bootstrapValues.global.servicePrincipal | ConvertFrom-Json
 if (!$sp) {
-    LogInfo -Message "Creating service principal with name '$spnName'..." 
+    LogInfo -Message "Creating service principal with name '$($bootstrapValues.global.servicePrincipal)'..." 
 
-    $certName = $spnName
-    EnsureCertificateInKeyVault -VaultName $vaultName -CertName $certName -ScriptFolder $envFolder
+    $certName = $($bootstrapValues.global.servicePrincipal)
+    EnsureCertificateInKeyVault -VaultName $($bootstrapValues.kv.name) -CertName $certName -ScriptFolder $envFolder
     
-    az ad sp create-for-rbac -n $spnName --role contributor --keyvault $vaultName --cert $certName | Out-Null
-    $sp = az ad sp list --display-name $spnName | ConvertFrom-Json
-    LogInfo -Message "Granting spn '$spnName' 'contributor' role to subscription" 
-    az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$subscriptionId" | Out-Null
+    az ad sp create-for-rbac -n $($bootstrapValues.global.servicePrincipal) --role contributor --keyvault $($bootstrapValues.kv.name) --cert $certName | Out-Null
+    $sp = az ad sp list --display-name $($bootstrapValues.global.servicePrincipal) | ConvertFrom-Json
+    LogInfo -Message "Granting spn '$($bootstrapValues.global.servicePrincipal)' 'contributor' role to subscription" 
+    az role assignment create --assignee $sp.appId --role Contributor --scope "/subscriptions/$($azureAccount.id)" | Out-Null
 
-    LogInfo -Message "Granting spn '$spnName' permissions to keyvault '$vaultName'" 
+    LogInfo -Message "Granting spn '$($bootstrapValues.global.servicePrincipal)' permissions to keyvault '$($bootstrapValues.kv.name)'" 
     az keyvault set-policy `
-        --name $vaultName `
+        --name $($bootstrapValues.kv.name) `
         --resource-group $bootstrapValues.kv.resourceGroup `
         --object-id $sp.objectId `
         --spn $sp.displayName `
@@ -92,7 +85,7 @@ if (!$sp) {
         --secret-permissions get list set delete | Out-Null
 }
 else {
-    LogInfo -Message "Service principal '$spnName' already exists." 
+    LogInfo -Message "Service principal '$($bootstrapValues.global.servicePrincipal)' already exists." 
 }
 
 
@@ -103,17 +96,15 @@ if ($bootstrapValues.global.aks -eq $true) {
         az group create --name $bootstrapValues.aks.resourceGroup --location $bootstrapValues.aks.location | Out-Null
     }
 
-    $aksSpnName = $bootstrapValues.aks.servicePrincipal
-    $askSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
     Get-OrCreateAksServicePrincipal `
-        -ServicePrincipalName $aksSpnName `
-        -ServicePrincipalPwdSecretName $askSpnPwdSecretName `
-        -VaultName $vaultName `
+        -ServicePrincipalName $bootstrapValues.aks.servicePrincipal `
+        -ServicePrincipalPwdSecretName $bootstrapValues.aks.servicePrincipalPassword `
+        -VaultName $($bootstrapValues.kv.name) `
         -EnvRootFolder $envFolder `
         -EnvName $EnvName | Out-Null
     
-    $aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
-    LogInfo -Message "set groupMembershipClaims to [All] to spn '$aksSpnName'"
+    $aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
+    LogInfo -Message "set groupMembershipClaims to [All] to spn '$($bootstrapValues.aks.servicePrincipal)'"
     $aksServerApp = az ad app show --id $aksSpn.appId | ConvertFrom-Json
     if ($aksServerApp.additionalProperties -and $aksServerApp.additionalProperties.groupMembershipClaims -eq "All") {
         LogInfo -Message "AKS server app manifest property 'groupMembershipClaims' is already set to true"
@@ -123,15 +114,14 @@ if ($bootstrapValues.global.aks -eq $true) {
     }
     
     # write to values.yaml
-    $values.aksServicePrincipalAppId = $aksSpn.appId
-    LogInfo -Message "Granting spn '$aksSpnName' 'Contributor' role to resource group '$($bootstrapValues.aks.resourceGroup)'" 
+    LogInfo -Message "Granting spn '$($bootstrapValues.aks.servicePrincipal)' 'Contributor' role to resource group '$($bootstrapValues.aks.resourceGroup)'" 
     az role assignment create `
         --assignee $aksSpn.appId `
         --role Contributor `
         --resource-group $bootstrapValues.aks.resourceGroup | Out-Null
-    LogInfo -Message "Granting spn '$aksSpnName' permissions to keyvault '$vaultName'" 
+    LogInfo -Message "Granting spn '$($bootstrapValues.aks.servicePrincipal)' permissions to keyvault '$($bootstrapValues.kv.name)'" 
     az keyvault set-policy `
-        --name $vaultName `
+        --name $($bootstrapValues.kv.name) `
         --resource-group $bootstrapValues.kv.resourceGroup `
         --object-id $aksSpn.objectId `
         --spn $aksSpn.displayName `
@@ -140,16 +130,7 @@ if ($bootstrapValues.global.aks -eq $true) {
 
     LogInfo -Message "Ensuring AKS Client App '$($bootstrapValues.aks.clientAppName)' is created..."
     Get-OrCreateAksClientApp -EnvRootFolder $envFolder -EnvName $EnvName | Out-Null
-
-    $aksClientApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
-    $values.aksClientAppId = $aksClientApp[0].appId
 }
-
-# write to values.yaml
-$values.subscriptionId = $azureAccount.id
-$values.servicePrincipalAppId = $sp.appId
-$values.tenantId = $azureAccount.tenantId  
-$values | ConvertTo-Yaml | Out-File $devValueYamlFile -Encoding utf8
 
 # connect as service principal 
 # LoginAsServicePrincipal -EnvName $EnvName -ScriptFolder $envFolder
