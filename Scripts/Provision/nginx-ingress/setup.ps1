@@ -40,9 +40,9 @@ helm install stable/cert-manager --name cert-manager `
     --set ingressShim.defaultIssuerName=letsencrypt-staging `
     --set ingressShim.defaultIssuerKind=ClusterIssuer
 
-kubectl apply -f ./cluster-issuer.yaml
-kubectl apply -f ./certificates.yaml
+kubectl apply -f (Join-Path $ingressProvisionFolder "cluster-issuer.yaml")
+kubectl apply -f (Join-Path $ingressProvisionFolder "certificates.yaml")
 
 helm install azure-samples/aks-helloworld
 helm install azure-samples/aks-helloworld --set title="AKS Ingress Demo" --set serviceName="ingress-demo"
-
+kubectl apply -f (Join-Path $ingressProvisionFolder "hello-world-ingress.yaml")
