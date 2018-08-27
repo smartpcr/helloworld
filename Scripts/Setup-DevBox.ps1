@@ -119,3 +119,7 @@ choco install gradle -y # choco upgrade gradle
 # setup golang
 choco install golang.install -y
 # choco upgrade golang.install
+
+
+# JQ
+choco install jq -y
