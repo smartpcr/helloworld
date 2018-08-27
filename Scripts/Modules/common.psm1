@@ -88,7 +88,11 @@ function Get-OrCreateServicePrincipalUsingPassword {
     $scopes = "/subscriptions/$($rmContext.Subscription.Id)/resourceGroups/$($rgName)"
     
     $servicePrincipalPwd = Get-OrCreatePasswordInVault -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
-    $sp = "$(az ad sp create-for-rbac --name $ServicePrincipalName --password $($servicePrincipalPwd.SecretValueText) --role=""Contributor"" --scopes=""$scopes"")"
+    az ad sp create-for-rbac `
+        --name $ServicePrincipalName `
+        --password $($servicePrincipalPwd.SecretValueText) `
+        --role=Contributor `
+        --scopes=$scopes
     
     $sp = Get-AzureRmADServicePrincipal -SearchString $ServicePrincipalName | Where-Object { $_.DisplayName -ieq $ServicePrincipalName }
     return $sp 

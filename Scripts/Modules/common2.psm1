@@ -103,7 +103,7 @@ function Get-OrCreateServicePrincipalUsingPassword {
     $spFound = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     if ($spFound) {
         az ad sp credential reset --name $ServicePrincipalName --password $servicePrincipalPwd.value 
-        return $sp
+        return $spFound
     }
 
     az ad sp create-for-rbac `

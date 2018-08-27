@@ -1,0 +1,10 @@
+apiVersion: "aadpodidentity.k8s.io/v1"
+kind: AzureIdentity
+metadata:
+  name: azureuser
+spec:
+  type: 1
+  ResourceID: /subscriptions/6abf90e5-4af2-4c86-83aa-5352df938db5/resourcegroups/helloworld-dev2-xd-wus2-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/azureuser
+  ClientID: 9a01914e-8bc1-427b-ad76-5197d3bb0a77
+
+
