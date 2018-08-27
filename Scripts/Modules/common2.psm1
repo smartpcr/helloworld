@@ -122,8 +122,8 @@ function Get-OrCreateAksServicePrincipal {
         [string] $EnvName
     )
 
-    $currentEnvFolder = Join-Path $EnvRootFolder $EnvName
-    $spnAuthJsonFile = Join-Path $currentEnvFolder "aks-spn-auth.json"
+    $templatesFolder = Join-Path $EnvRootFolder "templates"
+    $spnAuthJsonFile = Join-Path $templatesFolder "aks-spn-auth.json"
     $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
     $spFound = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     if ($spFound) {

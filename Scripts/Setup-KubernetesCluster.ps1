@@ -11,12 +11,12 @@
 param([string] $EnvName = "dev")
 
 
-$envFolder = $PSScriptRoot
-if (!$envFolder) {
-    $envFolder = Get-Location
-}
 
-$scriptFolder = Split-Path $envFolder -Parent
+$scriptFolder = $PSScriptRoot
+if (!$scriptFolder) {
+    $scriptFolder = Get-Location
+}
+$envFolder = Join-Path $scriptFolder "Env"
 $moduleFolder = Join-Path $scriptFolder "modules"
 $credentialFolder = Join-Path $envFolder "credential"
 $envCredentialFolder = Join-Path $credentialFolder $EnvName
@@ -55,7 +55,7 @@ $sshKeyData = Get-Content $aksCertPublicKeyFile
 
 
 LogStep -Step 3 -Message "Ensure AKS cluster '$($bootstrapValues.aks.clusterName)' within resource group '$($bootstrapValues.aks.resourceGroup)' is created..."
-# this took > 30 min!! Go grab a coffee.
+LogInfo -Message "this would take 10 - 30 min, Go grab a coffee"
 # az aks delete `
 #     --resource-group $bootstrapValues.aks.resourceGroup `
 #     --name $bootstrapValues.aks.clusterName --yes 
@@ -66,7 +66,7 @@ if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
     az aks create `
         --resource-group $bootstrapValues.aks.resourceGroup `
         --name $bootstrapValues.aks.clusterName `
-        --admin-username "azureuser" `
+        --admin-username $bootstrapValues.aks.adminUsername `
         --ssh-key-value $sshKeyData `
         --enable-rbac `
         --dns-name-prefix $bootstrapValues.aks.dnsPrefix `
@@ -100,13 +100,14 @@ LogStep -Step 5 -Message "Set AKS context..."
 # rm -rf /Users/xiaodongli/.kube/config
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
 LogInfo -Message "Grant dashboard access..."
+$templatesFolder = Join-Path $envFolder "templates"
 $devEnvFolder = Join-Path $envFolder $EnvName
-$dashboardAuthYamlFile = Join-Path $devEnvFolder "dashboard-admin.yaml"
+$dashboardAuthYamlFile = Join-Path $templatesFolder "dashboard-admin.yaml"
 kubectl apply -f $dashboardAuthYamlFile
 
 LogInfo -Message "Grant current user as cluster admin..."
 $aadUser = az ad user show --upn-or-object-id $bootstrapValues.aks.ownerUpn | ConvertFrom-Json
-$userAuthTplFile = Join-Path $devEnvFolder "user-admin.tpl"
+$userAuthTplFile = Join-Path $templatesFolder "user-admin.tpl"
 $userAuthYamlFile = Join-Path $devEnvFolder "user-admin.yaml"
 Copy-Item -Path $userAuthTplFile -Destination $userAuthYamlFile -Force
 ReplaceValuesInYamlFile -YamlFile $userAuthYamlFile -PlaceHolder "ownerUpn" -Value $aadUser.objectId

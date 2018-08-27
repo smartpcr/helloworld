@@ -1,6 +1,6 @@
-﻿# global 
+# global 
 owner: xd
-envName: dev
+envName: dev3
 subscriptionName: RRD MSDN Premium
 subscriptionAlias: rrdprem
 
@@ -16,4 +16,4 @@ helmStorageAccountName: rrdhelm
 helmBlobContainerName: helm
 
 # description: not used in provision
-description: istio
+description: kv-flex-volume

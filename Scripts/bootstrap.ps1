@@ -1,11 +1,11 @@
 param([string] $EnvName = "dev")
 
-$envFolder = $PSScriptRoot
-if (!$envFolder) {
-    $envFolder = Get-Location
+
+$scriptFolder = $PSScriptRoot
+if (!$scriptFolder) {
+    $scriptFolder = Get-Location
 }
 
-Set-Location $envFolder
 
 .\Setup-ServicePrincipal2.ps1 -EnvName $EnvName
 .\Setup-ContainerRegistry.ps1 -EnvName $EnvName

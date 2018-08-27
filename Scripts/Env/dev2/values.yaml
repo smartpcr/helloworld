@@ -1,6 +1,6 @@
-﻿# global 
+# global 
 owner: xd
-envName: dev
+envName: dev2
 subscriptionName: RRD MSDN Premium
 subscriptionAlias: rrdprem
 
@@ -15,5 +15,6 @@ aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
 helmStorageAccountName: rrdhelm
 helmBlobContainerName: helm
 
+
 # description: not used in provision
-description: istio
+description: pod identity

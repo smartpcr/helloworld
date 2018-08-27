@@ -11,12 +11,13 @@
 param([string] $EnvName = "dev")
 
 
-$envFolder = $PSScriptRoot
-if (!$envFolder) {
-    $envFolder = Get-Location
+$scriptFolder = $PSScriptRoot
+if (!$scriptFolder) {
+    $scriptFolder = Get-Location
 }
-$scriptFolder = Split-Path $envFolder -Parent
+$envFolder = Join-Path $scriptFolder "Env"
 $moduleFolder = Join-Path $scriptFolder "modules"
+
 Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
 Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
