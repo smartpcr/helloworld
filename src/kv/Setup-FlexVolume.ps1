@@ -6,7 +6,8 @@
     4) a helloworld app that retrieve docdb connection string from kv flex volume
 #>
 param(
-    [string] $EnvName = "dev"
+    [string] $EnvName = "dev3",
+    [switch] $UsePodIdentity
 )
 
 
@@ -27,17 +28,12 @@ LogTitle "Setting Up KV Flex Volume for Environment $EnvName"
 LogStep -Step 1 -Message "Login to azure and set subscription to '$($bootstrapValues.global.subscriptionName)'..." 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $envFolder
 $azureAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
+az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName | Out-Null
+$kubeContextName = "$(kubectl config current-context)" 
+LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
 
 
-LogStep -Step 2 -Message "Install pod identity to cluster..."
-$gitRootFolder = Join-Path $Env:HOME "Work"
-Set-Location $gitRootFolder
-git clone https://github.com/Azure/aad-pod-identity.git
-Set-Location (Join-Path $gitRootFolder "aad-pod-identity")
-kubectl apply -f deploy/infra/deployment-rbac.yaml
-
-
-LogStep -Step 3 -Message "Creating service principal '$($bootstrapValues.kvSample.servicePrincipal)'..."
+LogStep -Step 2 -Message "Creating service principal '$($bootstrapValues.kvSample.servicePrincipal)'..."
 Get-OrCreateServicePrincipalUsingPassword `
     -ServicePrincipalName $bootstrapValues.kvSample.servicePrincipal `
     -ServicePrincipalPwdSecretName $bootstrapValues.kvSample.servicePrincipalPwd `
@@ -45,7 +41,7 @@ Get-OrCreateServicePrincipalUsingPassword `
 $spn = az ad sp list --display-name $bootstrapValues.kvSample.servicePrincipal | ConvertFrom-Json
 
 
-LogStep -Step 4 -Message "Granting spn '$($spn.displayName)' permission to keyvault '$($bootstrapValues.kv.name)'..."
+LogStep -Step 3 -Message "Granting spn '$($spn.displayName)' permission to keyvault '$($bootstrapValues.kv.name)'..."
 az role assignment create `
     --role Reader `
     --assignee $spn.objectId `
@@ -58,43 +54,6 @@ az keyvault set-policy `
     --spn $spn.displayName `
     --certificate-permissions get  `
     --secret-permissions get | Out-Null
-
-
-LogStep -Step 5 -Message "Create azure identity..."
-$identityName = "azureuser"
-$azureUser = az identity create -g $bootstrapValues.global.resourceGroup -n $identityName | ConvertFrom-Json
-az role assignment create `
-    --role Reader `
-    --assignee $azureUser.principalId `
-    --scope /subscriptions/$($azureAccount.id)/resourcegroups/$($bootstrapValues.global.resourceGroup) | Out-Null
-
-
-LogStep -Step 6 -Message "Make sure aks spn can use newly created azure identity"
-$aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
-az role assignment create `
-    --role "Managed Identity Operator" `
-    --assignee $aksSpn.appId `
-    --scope $azureUser.id | Out-Null
-
-
-LogStep -Step 7 -Message "Install aad pod identity..."
-$podIdentityTemplateFile = Join-Path $kvSampleFolder "aadpodidentity.tpl"
-$podIdentityYamlFile = Join-Path $kvSampleFolder "aadpodidentity.yml"
-Copy-Item -Path $podIdentityTemplateFile -Destination $podIdentityYamlFile -Force
-ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "azureIdentityName" -Value $identityName
-ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "azureIdentityId" -Value $azureUser.id
-ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "servicePrincipalClientId" -Value $spn.appId
-Set-Location $kvSampleFolder
-kubectl apply -f $podIdentityYamlFile
-
-
-LogStep -Step 8 -Message "Install pod identity binding..."
-$podIdentityBindingTplFile = Join-Path $kvSampleFolder "aadpodidentitybinding.tpl"
-$podIdentityBindingYmlFile = Join-Path $kvSampleFolder "aadpodidentitybinding.yml"
-Copy-Item -Path $podIdentityBindingTplFile -Destination $podIdentityBindingYmlFile -Force
-ReplaceValuesInYamlFile -YamlFile $podIdentityBindingYmlFile -PlaceHolder "azureIdentityName" -Value $identityName
-ReplaceValuesInYamlFile -YamlFile $podIdentityBindingYmlFile -PlaceHolder "selectorLabel" -Value $identityName
-
 
 
 LogStep -Step 4 -Message "Install daemonset 'keyvault-flexvolume' to AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
@@ -117,7 +76,12 @@ $podTplFile = Join-Path $kvSampleFolder "TestPod.tpl"
 $podYamlFile = Join-Path $kvSampleFolder "TestPod.yml"
 Copy-Item -Path $podTplFile -Destination $podYamlFile -Force 
 LogInfo -Message "Note: the properties under options have to use lowercase and their order cannot be changed!"
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "tenantId" -Value $bootstrapValues.global.tenantId
+$UsePodIdentityFlag = "false"
+if ($UsePodIdentity) {
+    $UsePodIdentityFlag = "true"
+}
+ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "usePodIdentity" -Value $UsePodIdentityFlag
+ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "tenantId" -Value $azureAccount.tenantId
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "subscriptionId" -Value $azureAccount.id
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "rgName" -Value $bootstrapValues.kv.resourceGroup
 ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "vaultName" -Value $bootstrapValues.kv.name

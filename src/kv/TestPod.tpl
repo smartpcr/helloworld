@@ -17,7 +17,7 @@ spec:
       secretRef:
         name: {{ .Values.kvSecrets }}
       options:
-        usepodidentity: "false"
+        usepodidentity: "{{ .Values.usePodIdentity }}"
         resourcegroup: "{{ .Values.rgName }}"
         keyvaultname: "{{ .Values.vaultName }}"
         keyvaultobjectname: "{{ .Values.secretName }}"
