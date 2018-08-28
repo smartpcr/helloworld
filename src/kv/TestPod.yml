@@ -15,13 +15,13 @@ spec:
     flexVolume:
       driver: "azure/kv"
       secretRef:
-        name: 
+        name: kvcreds
       options:
         usepodidentity: "false"
         resourcegroup: "rrdprem-rg"
         keyvaultname: "rrdprem-kv"
         keyvaultobjectname: "appsecret1"
-        keyvaultobjectversion: "b1bfd2996fea463982934157eb65b4e7"
+        keyvaultobjectversion: "07ac9712064b4b8db05e927e7136688a"
         keyvaultobjecttype: secret 
         subscriptionid: "6abf90e5-4af2-4c86-83aa-5352df938db5"
         tenantid: "f7215caf-efd9-4bac-89c5-a3cf109a9f18"

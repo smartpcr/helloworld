@@ -57,14 +57,16 @@ az keyvault set-policy `
 
 
 LogStep -Step 4 -Message "Install daemonset 'keyvault-flexvolume' to AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
-az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
 kubectl apply -f "https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml"
 
 
 LogStep -Step 5 -Message "Create KV secret using spn '$($spn.displayName)' and its password '***'..."
 $kvCredName = "kvcreds"
 $spnPwdSecret = az keyvault secret show --vault-name $bootstrapValues.kv.name --name $bootstrapValues.kvSample.servicePrincipalPwd | ConvertFrom-Json
-kubectl create secret generic $kvCredName --from-literal clientid=$spn.appId --from-literal clientsecret=$spnPwdSecret.value --type "azure/kv" --dry-run -o yaml | kubectl apply -f -
+kubectl delete secret $kvCredName
+$clientId = $spn.appId
+$clientSecret = $spnPwdSecret.value
+kubectl create secret generic $kvCredName --from-literal clientid=$clientId --from-literal clientsecret=$clientSecret --type "azure/kv" 
 
 
 LogStep -Step 6 -Message "Deploy KV access sample application..."

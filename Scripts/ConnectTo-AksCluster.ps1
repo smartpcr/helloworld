@@ -1,4 +1,7 @@
-param([string] $EnvName = "dev")
+param(
+    [string] $EnvName = "dev",
+    [switch] $asAdmin
+)
 
 
 $scriptFolder = $PSScriptRoot
@@ -14,6 +17,12 @@ Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
-az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName | Out-Null
+if ($asAdmin) {
+    az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
+} 
+else {
+    az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName | Out-Null
+}
+
 $kubeContextName = "$(kubectl config current-context)" 
 Write-Host "You are now connected to kubenetes context: '$kubeContextName'" 
