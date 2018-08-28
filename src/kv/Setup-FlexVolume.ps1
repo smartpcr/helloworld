@@ -66,6 +66,7 @@ $spnPwdSecret = az keyvault secret show --vault-name $bootstrapValues.kv.name --
 kubectl delete secret $kvCredName
 $clientId = $spn.appId
 $clientSecret = $spnPwdSecret.value
+# NOTE: using $clientId instead of $spn.appId is necessary, otherwise, ".appId" is taken as input!!
 kubectl create secret generic $kvCredName --from-literal clientid=$clientId --from-literal clientsecret=$clientSecret --type "azure/kv" 
 
 
