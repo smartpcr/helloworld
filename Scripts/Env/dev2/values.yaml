@@ -17,4 +17,4 @@ helmBlobContainerName: helm
 
 
 # description: not used in provision
-description: pod identity
+description: pod identity, nginx ingress, cert manager and tls certs

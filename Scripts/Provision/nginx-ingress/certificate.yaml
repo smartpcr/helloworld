@@ -1,0 +1,21 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: demo
+  namespace: ingress-test
+spec:
+  secretName: staging.xiaodong.world-tls
+  issuerRef:
+    name: demo-letsncrypt-prod
+  commonName: staging.xiaodong.world
+  dnsNames:
+  - staging.xiaodong.world
+  acme:
+    config:
+    - http01:
+        ingress: demo
+      domains:
+      - staging.xiaodong.world
+      #- www.myapp.newtech.academy
+
+

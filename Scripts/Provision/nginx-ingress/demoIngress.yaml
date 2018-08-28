@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: demo
+  namespace: ingress-test
+spec:
+  tls:
+  - secretName: staging.xiaodong.world-tls
+    hosts:
+    - staging.xiaodong.world
+  rules:
+    - host: staging.xiaodong.world
+      http:
+        paths:
+          - backend:
+              serviceName: demo
+              servicePort: 3000
+            path: /
+
+

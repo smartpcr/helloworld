@@ -62,8 +62,8 @@ function LogTitle() {
 
 function LogStep() {
     param(
-        [string] $Message,
-        [int] $Step
+        [int] $Step,
+        [string] $Message
     )
 
     $formatedMessage = "$Step) $Message"
