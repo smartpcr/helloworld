@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: demo
+    aadpodidbinding: demo
+  name: demo
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        app: demo
+        aadpodidbinding: demo
+    spec:
+      containers:
+      - name: demo
+        image: "mcr.microsoft.com/k8s/aad-pod-identity/demo:1.2"
+        imagePullPolicy: Always
+        args:
+          - "--subscriptionid=6abf90e5-4af2-4c86-83aa-5352df938db5"
+          - "--clientid=3d3ffee4-f5fa-41bb-ba1e-a33f49b66cdf"
+          - "--resourcegroup=MC_helloworld-dev-xd-k8s-rg_helloworld-dev-xd-k8s-cluster_westus2" 
+          # TO SPECIFY NAME OF RESOURCE TO GRANT TOKEN ADD --aad-resourcename
+          # this demo defaults aad-resourcename to https://management.azure.com/
+          # e.g. - "--aad-resourcename=https://vault.azure.net"
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+

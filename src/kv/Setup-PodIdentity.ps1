@@ -21,19 +21,23 @@ Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
 Import-Module (Join-Path $moduleFolder "YamlUtil.psm1") -Force
 Import-Module (Join-Path $moduleFolder "VaultUtil.psm1") -Force
 SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
-LogTitle "Setting Up KV Flex Volume for Environment $EnvName" 
+LogTitle "Setting Up Pod Identity for Environment $EnvName" 
 
 
 LogStep -Step 1 -Message "Login to azure and set subscription to '$($bootstrapValues.global.subscriptionName)'..." 
 $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $envFolder
 $azureAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
+$identityName = "azureuser"
+$appLabel = "demo"
 
 
 LogStep -Step 2 -Message "Install pod identity to cluster..."
-$gitRootFolder = Join-Path $Env:HOME "Work"
+$gitRootFolder = Join-Path (Join-Path $Env:HOME "Work") "github"
+New-Item -Path $gitRootFolder -ItemType Directory -Force | Out-Null
 Set-Location $gitRootFolder
-git clone https://github.com/Azure/aad-pod-identity.git
-Set-Location (Join-Path $gitRootFolder "aad-pod-identity")
+git clone https://github.com/smartpcr/aad-pod-identity.git
+$aadPodIdentityGitFolder = Join-Path $gitRootFolder "aad-pod-identity"
+Set-Location $aadPodIdentityGitFolder
 kubectl apply -f deploy/infra/deployment-rbac.yaml
 
 
@@ -61,12 +65,14 @@ az keyvault set-policy `
 
 
 LogStep -Step 5 -Message "Create azure identity..."
-$identityName = "azureuser"
+
 $azureUser = az identity create -g $bootstrapValues.global.resourceGroup -n $identityName | ConvertFrom-Json
+LogInfo -Message "Azure identity '$identityName' is created"
 az role assignment create `
     --role Reader `
     --assignee $azureUser.principalId `
     --scope /subscriptions/$($azureAccount.id)/resourcegroups/$($bootstrapValues.global.resourceGroup) | Out-Null
+LogInfo -Message "Azure identity '$identityName' is granted reader permission to resource group '$($bootstrapValues.global.resourceGroup)'"
 
 
 LogStep -Step 6 -Message "Make sure aks spn can use newly created azure identity"
@@ -81,10 +87,12 @@ LogStep -Step 7 -Message "Install aad pod identity..."
 $podIdentityTemplateFile = Join-Path $kvSampleFolder "aadpodidentity.tpl"
 $podIdentityYamlFile = Join-Path $kvSampleFolder "aadpodidentity.yml"
 Copy-Item -Path $podIdentityTemplateFile -Destination $podIdentityYamlFile -Force
+ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "aadPodIdentityType" -Value "0"
 ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "azureIdentityName" -Value $identityName
 ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "azureIdentityId" -Value $azureUser.id
-ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "servicePrincipalClientId" -Value $spn.appId
+ReplaceValuesInYamlFile -YamlFile $podIdentityYamlFile -PlaceHolder "servicePrincipalClientId" -Value $azureUser.principalId
 Set-Location $kvSampleFolder
+
 kubectl apply -f $podIdentityYamlFile
 
 
@@ -93,42 +101,23 @@ $podIdentityBindingTplFile = Join-Path $kvSampleFolder "aadpodidentitybinding.tp
 $podIdentityBindingYmlFile = Join-Path $kvSampleFolder "aadpodidentitybinding.yml"
 Copy-Item -Path $podIdentityBindingTplFile -Destination $podIdentityBindingYmlFile -Force
 ReplaceValuesInYamlFile -YamlFile $podIdentityBindingYmlFile -PlaceHolder "azureIdentityName" -Value $identityName
-ReplaceValuesInYamlFile -YamlFile $podIdentityBindingYmlFile -PlaceHolder "selectorLabel" -Value $identityName
+ReplaceValuesInYamlFile -YamlFile $podIdentityBindingYmlFile -PlaceHolder "selectorLabel" -Value $appLabel
+
+kubectl apply -f $podIdentityBindingYmlFile
 
 
+LogStep -Step 9 -Message "Deploy demo app..."
+$deploymentTplFile = Join-Path $kvSampleFolder "deployment.tpl"
+$deploymentYmlFile = Join-Path $kvSampleFolder "deployment.yml"
+Copy-Item -Path $deploymentTplFile -Destination $deploymentYmlFile -Force
+ReplaceValuesInYamlFile -YamlFile $deploymentYmlFile -PlaceHolder "label" -Value $appLabel
+ReplaceValuesInYamlFile -YamlFile $deploymentYmlFile -PlaceHolder "subscriptionId" -Value $azureAccount.id
+ReplaceValuesInYamlFile -YamlFile $deploymentYmlFile -PlaceHolder "clientId" -Value $azureUser.principalId
+$nodeResourceGroup = "$(az aks show --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName) --query nodeResourceGroup -o tsv)"
+ReplaceValuesInYamlFile -YamlFile $deploymentYmlFile -PlaceHolder "nodeResourceGroup" -Value $nodeResourceGroup
 
-LogStep -Step 4 -Message "Install daemonset 'keyvault-flexvolume' to AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
-az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
-kubectl apply -f "https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml"
+kubectl apply -f $deploymentYmlFile
 
-
-LogStep -Step 5 -Message "Create KV secret using spn '$($spn.displayName)' and its password '***'..."
-$kvCredName = "kvcreds"
-$spnPwdSecret = az keyvault secret show --vault-name $bootstrapValues.kv.name --name $bootstrapValues.kvSample.servicePrincipalPwd | ConvertFrom-Json
-kubectl create secret generic $kvCredName --from-literal clientid=$spn.appId --from-literal clientsecret=$spnPwdSecret.value --type "azure/kv" --dry-run -o yaml | kubectl apply -f -
-
-
-LogStep -Step 6 -Message "Deploy KV access sample application..."
-$secretName = "appsecret1"
-$secretValue = "TopSecret!"
-$kvSecret = az keyvault secret set --vault-name $bootstrapValues.kv.name --name $secretName --value $secretValue | ConvertFrom-Json
-$secretVersion = $kvSecret.id.Substring($kvSecret.id.LastIndexOf("/") + 1)
-$podTplFile = Join-Path $kvSampleFolder "TestPod.tpl"
-$podYamlFile = Join-Path $kvSampleFolder "TestPod.yml"
-Copy-Item -Path $podTplFile -Destination $podYamlFile -Force 
-LogInfo -Message "Note: the properties under options have to use lowercase and their order cannot be changed!"
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "tenantId" -Value $bootstrapValues.global.tenantId
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "subscriptionId" -Value $azureAccount.id
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "rgName" -Value $bootstrapValues.kv.resourceGroup
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "vaultName" -Value $bootstrapValues.kv.name
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "secretName" -Value $secretName
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "kvSecrets" -Value $kvCredName
-ReplaceValuesInYamlFile -YamlFile $podYamlFile -PlaceHolder "version" -Value $secretVersion
-
-kubectl apply -f $podYamlFile 
-
-
-LogStep -Step 7 -Message "Verify secret is mounted to pod..."
 
 <# list ip addr for cluster nodes
 kubectl get pods -o wide # get nodename

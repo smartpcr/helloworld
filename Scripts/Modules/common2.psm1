@@ -77,18 +77,23 @@ function Get-OrCreatePasswordInVault2 {
         [string] $SecretName
     )
 
+    $secretsFound = az keyvault secret list `
+        --vault-name $VaultName `
+        --query "[?id=='https://$($VaultName).vault.azure.net/secrets/$SecretName']" | ConvertFrom-Json
+    if (!$secretsFound) {
+        $prng = [System.Security.Cryptography.RNGCryptoServiceProvider]::Create()
+        $bytes = New-Object Byte[] 30
+        $prng.GetBytes($bytes)
+        $password = [System.Convert]::ToBase64String($bytes) + "!@1wW" #  ensure we meet password requirements
+        az keyvault secret set --vault-name $VaultName --name $SecretName --value $password
+        $res = az keyvault secret show --vault-name $VaultName --name $SecretName | ConvertFrom-Json
+        return $res 
+    }
+
     $res = az keyvault secret show --vault-name $VaultName --name $SecretName | ConvertFrom-Json
     if ($res) {
         return $res
     }
-
-    $prng = [System.Security.Cryptography.RNGCryptoServiceProvider]::Create()
-    $bytes = New-Object Byte[] 30
-    $prng.GetBytes($bytes)
-    $password = [System.Convert]::ToBase64String($bytes) + "!@1wW" #  ensure we meet password requirements
-    az keyvault secret set --vault-name $VaultName --name $SecretName --value $password
-    $res = az keyvault secret show --vault-name $VaultName --name $SecretName | ConvertFrom-Json
-    return $res 
 }
 
 
@@ -102,10 +107,12 @@ function Get-OrCreateServicePrincipalUsingPassword {
     $servicePrincipalPwd = Get-OrCreatePasswordInVault2 -VaultName $VaultName -secretName $ServicePrincipalPwdSecretName
     $spFound = az ad sp list --display-name $ServicePrincipalName | ConvertFrom-Json
     if ($spFound) {
+        LogInfo -Message "Service principal '$ServicePrincipalName' is already installed, reset its password..."
         az ad sp credential reset --name $ServicePrincipalName --password $servicePrincipalPwd.value 
         return $spFound
     }
 
+    LogInfo -Message "Creating service principal '$ServicePrincipalName' with password..."
     az ad sp create-for-rbac `
         --name $ServicePrincipalName `
         --password $($servicePrincipalPwd.value) | Out-Null

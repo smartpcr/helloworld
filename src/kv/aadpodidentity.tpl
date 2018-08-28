@@ -3,6 +3,6 @@ kind: AzureIdentity
 metadata:
   name: {{ .Values.azureIdentityName }}
 spec:
-  type: 1
+  type: {{ .Values.aadPodIdentityType }}
   ResourceID: {{ .Values.azureIdentityId }}
   ClientID: {{ .Values.servicePrincipalClientId }}
