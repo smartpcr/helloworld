@@ -62,7 +62,15 @@ LogInfo -Message "this would take 10 - 30 min, Go grab a coffee"
 $aksClusters = az aks list --resource-group $bootstrapValues.aks.resourceGroup --query "[?name == '$($bootstrapValues.aks.clusterName)']" | ConvertFrom-Json
 if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
     LogInfo -Message "Creating AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
-    $tags = "environment=$EnvName;responsible=$($bootstrapValues.aks.ownerUpn)"
+    
+    $tags = @{ 
+        environment = $EnvName 
+        responsible = $($bootstrapValues.aks.ownerUpn)
+        createdOn   = $(Get-Date).ToString("yyyy-MM-dd")
+        createdBy   = $env:USERNAME
+        fromWorkstation = $env:COMPUTERNAME
+        purpose = $bootstrapValues.aks.purpose
+    }
     az aks create `
         --resource-group $bootstrapValues.aks.resourceGroup `
         --name $bootstrapValues.aks.clusterName `

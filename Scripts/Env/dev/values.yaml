@@ -1,8 +1,8 @@
 ﻿# global 
 owner: xd
 envName: dev
-subscriptionName: RRD MSDN Premium
-subscriptionAlias: rrdprem
+subscriptionName: RRD MSDN Ultimate
+subscriptionAlias: rrdult
 
 # acr
 acrOwnerEmail: xiaodoli@microsoft.com
@@ -16,4 +16,4 @@ helmStorageAccountName: rrdhelm
 helmBlobContainerName: helm
 
 # description: not used in provision
-description: istio
+purpose: istio
