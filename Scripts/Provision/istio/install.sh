@@ -1,16 +1,18 @@
 #!bin/bash
 
-echo "Downloading istio release..."
-curl -L https://git.io/getIstio | sh -
-helm template install/kubernetes/helm/istio --name istio --namespace istio-system > $HOME/istio.yaml
-kubectl create namespace istio-system
-echo "Installing istio..."
-kubectl apply -f $HOME/istio.yaml
+echo "Start with a clean slate"
+kubectl delete all --all -n istio-system 
 
-echo "delete istio from cluster"
-helm delete --purge istio
+echo "Use istio 1.0.1 binary"
+cd ~/
+curl -o istio-1.0.1.tar.gz -L https://github.com/istio/istio/releases/download/1.0.1/istio-1.0.1-osx.tar.gz
+tar -xzvf istio-1.0.1.tar.gz 
+ln -sf ~/istio-1.0.1 ~/istio 
+rm istio-1.0.1.tar.gz 
+cp ~/istio/bin/istioctl /Usr/local/bin/  
 
-echo "installing prometheus..."
-helm repo add coreos https://s3-eu-west-1.amazonaws.com/coreos-charts/stable/
-helm install coreos/prometheus-operator --name prometheus-operator --namespace monitoring
-helm install coreos/kube-prometheus --name kube-prometheus --set global.rbacEnable=true --namespace monitoring
+cd ~/istio
+echo "Installing istio (using demo, that include a few add ons)..."
+kubectl apply -f ~/istio/install/kubernetes/istio-demo.yaml --as=admin --as-group=system:masters 
+kubectl get pods -n istio-system -w
+kubectl get services -n istio-system -w 

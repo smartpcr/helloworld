@@ -10,12 +10,11 @@
 #>
 param([string] $EnvName = "dev")
 
-
-
 $scriptFolder = $PSScriptRoot
 if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
+
 $envFolder = Join-Path $scriptFolder "Env"
 $moduleFolder = Join-Path $scriptFolder "modules"
 $credentialFolder = Join-Path $envFolder "credential"
@@ -63,17 +62,25 @@ $aksClusters = az aks list --resource-group $bootstrapValues.aks.resourceGroup -
 if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
     LogInfo -Message "Creating AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
     
-    $tags = @{ 
-        environment = $EnvName 
-        responsible = $($bootstrapValues.aks.ownerUpn)
-        createdOn   = $(Get-Date).ToString("yyyy-MM-dd")
-        createdBy   = $env:USERNAME
-        fromWorkstation = $env:COMPUTERNAME
-        purpose = $bootstrapValues.aks.purpose
+    $currentUser = $env:USERNAME
+    if (!$currentUser) {
+        $currentUser = id -un
     }
+    $currentMachine = $env:COMPUTERNAME
+    if (!$currentMachine) {
+        $currentMachine = hostname 
+    }
+    $tags = "environment=$EnvName " + 
+    "responsible=$($bootstrapValues.aks.ownerUpn) " +
+    "createdOn=$((Get-Date).ToString("yyyy-MM-dd")) " +
+    "createdBy=$currentUser " +
+    "fromWorkstation=$currentMachine " +
+    "purpose=$($bootstrapValues.aks.purpose)"
+    
     az aks create `
         --resource-group $bootstrapValues.aks.resourceGroup `
         --name $bootstrapValues.aks.clusterName `
+        --kubernetes-version $bootstrapValues.aks.version `
         --admin-username $bootstrapValues.aks.adminUsername `
         --ssh-key-value $sshKeyData `
         --enable-rbac `
