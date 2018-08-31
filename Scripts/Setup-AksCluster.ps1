@@ -138,6 +138,13 @@ kubectl -n kube-system create sa tiller
 kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
 helm init --service-account tiller --upgrade
 
+
+LogStep -Step 7 -Message "Enable addons for istio integration...(will take a minute)"
+az aks enable-addons `
+    --resource-group $bootstrapValues.aks.resourceGroup `
+    --name $bootstrapValues.aks.clusterName `
+    --addons http_application_routing 
+
 <# run the following block to switch to windows-based authentication, token expiration is much quicker 
 LogInfo -Message "reset kubernetes context..."
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
