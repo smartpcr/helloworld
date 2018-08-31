@@ -70,12 +70,13 @@ if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
     if (!$currentMachine) {
         $currentMachine = hostname 
     }
-    $tags = "environment=$EnvName " + 
-    "responsible=$($bootstrapValues.aks.ownerUpn) " +
-    "createdOn=$((Get-Date).ToString("yyyy-MM-dd")) " +
-    "createdBy=$currentUser " +
-    "fromWorkstation=$currentMachine " +
-    "purpose=$($bootstrapValues.aks.purpose)"
+    $tags = @()
+    $tags += "environment=$EnvName" 
+    $tags += "responsible=$($bootstrapValues.aks.ownerUpn)"
+    $tags += "createdOn=$((Get-Date).ToString("yyyy-MM-dd"))"
+    $tags += "createdBy=$currentUser"
+    $tags += "fromWorkstation=$currentMachine"
+    $tags += "purpose=$($bootstrapValues.aks.purpose)"
     
     az aks create `
         --resource-group $bootstrapValues.aks.resourceGroup `
