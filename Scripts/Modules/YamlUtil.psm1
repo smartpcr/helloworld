@@ -1,5 +1,4 @@
 
-Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module powershell-yaml
     
 

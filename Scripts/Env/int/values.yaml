@@ -1,10 +1,19 @@
+# global 
+owner: xd
 envName: int
-owner: xdxli
-aksDnsPrefix: hw-aks-xd
-subscriptionId: 6abf90e5-4af2-4c86-83aa-5352df938db5
-aksServicePrincipalAppId: c4312e85-4a95-4c4e-b5c8-af81747ddf3a
-servicePrincipalCertThumbprint: D601F820788856798555A2AF2E6A1CFF2ADA1A85
-tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
-subscriptionName: RRD MSDN Premium
-servicePrincipalAppId: 78d75fad-ba34-4a46-8562-8480fc1f969f
+subscriptionName: RRD MSDN Ultimate
+subscriptionAlias: rrdult
 
+# acr
+acrOwnerEmail: xiaodoli@microsoft.com
+
+# aks
+aksDnsPrefix: hw-aks-xd
+aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
+
+# helm repo
+helmStorageAccountName: rrdhelm
+helmBlobContainerName: helm
+
+# description: not used in provision
+purpose: spinnaker

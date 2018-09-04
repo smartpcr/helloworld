@@ -123,3 +123,6 @@ choco install golang.install -y
 
 # JQ
 choco install jq -y
+
+# trust the gallery so that I can import yamlUtil without prompt
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
