@@ -92,7 +92,7 @@ if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
         --aad-server-app-secret $aksSpnPwd `
         --aad-client-app-id $aksClientApp.appId `
         --aad-tenant-id $azAccount.tenantId `
-        --tags $tags
+        --tags $tags | Out-Null
 }
 else {
     LogInfo -Message "AKS cluster '$($bootstrapValues.aks.clusterName)' is already created."
@@ -143,7 +143,7 @@ LogStep -Step 7 -Message "Enable addons for istio integration...(will take a min
 az aks enable-addons `
     --resource-group $bootstrapValues.aks.resourceGroup `
     --name $bootstrapValues.aks.clusterName `
-    --addons http_application_routing 
+    --addons http_application_routing | Out-Null
 
 <# run the following block to switch to windows-based authentication, token expiration is much quicker 
 LogInfo -Message "reset kubernetes context..."
