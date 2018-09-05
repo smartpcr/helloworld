@@ -115,3 +115,8 @@ brew cask install powershell
 
 echo "Installing python modules..."
 sudo pip install pyyaml
+
+echo "Installing halyard (only if you need to install spinnaker)..."
+# curl -O https://raw.githubusercontent.com/spinnaker/halyard/master/install/macos/InstallHalyard.sh
+sudo bash InstallHalyard.sh
+
