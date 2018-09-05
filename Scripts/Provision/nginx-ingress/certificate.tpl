@@ -16,4 +16,3 @@ spec:
         ingress: {{ .Values.appName }}
       domains:
       - {{ .Values.hostName }}
-      #- www.myapp.newtech.academy
