@@ -17,8 +17,8 @@ SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
 
-LogStep -Step 1 -Message "Delete AKS cluster '$bootstrapValues.aks.clusterName', this can take up to 10 min..."
-az aks delete --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
+LogStep -Step 1 -Message "Delete AKS cluster '$($bootstrapValues.aks.clusterName)', this can take up to 10 min..."
+az aks delete --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName -y
 
 LogStep -Step 2 -Message "Delete AAD app and service principal associated with AKS..."
 $clientAadApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
@@ -39,4 +39,4 @@ else {
 }
 
 LogStep -Step 3 -Message "Remove resource group '$($bootstrapValues.aks.resourceGroup)'..."
-az group delete -g $bootstrapValues.aks.resourceGroup
+az group delete -g $bootstrapValues.aks.resourceGroup -y

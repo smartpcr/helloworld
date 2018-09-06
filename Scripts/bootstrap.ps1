@@ -6,7 +6,6 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 
-
-.\Setup-ServicePrincipal2.ps1 -EnvName $EnvName
-.\Setup-ContainerRegistry.ps1 -EnvName $EnvName
-.\Setup-KubernetesCluster.ps1 -EnvName $EnvName
+Invoke-Expression "$scriptFolder\Setup-ServicePrincipal2.ps1 -EnvName $EnvName" 
+Invoke-Expression "$scriptFolder\Setup-ContainerRegistry.ps1 -EnvName $EnvName" 
+Invoke-Expression "$scriptFolder\Setup-AksCluster.ps1 -EnvName $EnvName" 

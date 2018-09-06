@@ -15,7 +15,7 @@ $kvSampleFolder = $PSScriptRoot
 if (!$kvSampleFolder) {
     $kvSampleFolder = Get-Location
 }
-$scriptFolder = Join-Path (Split-Path (Split-Path $kvSampleFolder -Parent) -Parent) "Scripts"
+$scriptFolder = Split-Path (Split-Path (Split-Path $kvSampleFolder -Parent) -Parent) -Parent
 $envFolder = Join-Path $scriptFolder "Env"
 $moduleFolder = Join-Path $scriptFolder "modules"
 Import-Module (Join-Path $moduleFolder "common2.psm1") -Force

@@ -16,4 +16,4 @@ helmStorageAccountName: rrdhelm
 helmBlobContainerName: helm
 
 # description: not used in provision
-purpose: kv-flex-volume
+purpose: kv-flex-volume,kms
