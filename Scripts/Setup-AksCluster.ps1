@@ -122,7 +122,9 @@ $dashboardAuthYamlFile = Join-Path $templatesFolder "dashboard-admin.yaml"
 kubectl apply -f $dashboardAuthYamlFile
 
 LogInfo -Message "Grant current user as cluster admin..."
-$aadUser = az ad user show --upn-or-object-id $bootstrapValues.aks.ownerUpn | ConvertFrom-Json
+$currentUserEmail = $(az account show | ConvertFrom-Json).user.name
+$currentPrincipalName = $(az ad user list --query "[?mail=='$currentUserEmail']" | ConvertFrom-Json).userPrincipalName 
+$aadUser = az ad user show --upn-or-object-id $currentPrincipalName | ConvertFrom-Json
 $userAuthTplFile = Join-Path $templatesFolder "user-admin.tpl"
 $userAuthYamlFile = Join-Path $devEnvFolder "user-admin.yaml"
 Copy-Item -Path $userAuthTplFile -Destination $userAuthYamlFile -Force

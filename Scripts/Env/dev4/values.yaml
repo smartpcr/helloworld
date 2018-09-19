@@ -1,0 +1,18 @@
+# global 
+owner: xd
+envName: dev4
+subscriptionName: AAMVA BizSpark
+subscriptionAlias: aamvabiz
+
+# acr
+acrOwnerEmail: lingxd@gmail.com
+
+# aks
+aksDnsPrefix: hw-aks-xd
+
+# helm repo
+helmStorageAccountName: aamvabizhelm
+helmBlobContainerName: helm
+
+# description: not used in provision
+purpose: TICK

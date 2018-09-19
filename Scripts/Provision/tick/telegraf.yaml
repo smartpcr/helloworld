@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf
+  namespace: tick
+  labels:
+    k8s-app: telegraf
+data:
+  telegraf.conf: |+
+    [global_tags]
+      env = "$ENV"
+    [agent]
+      hostname = "$HOSTNAME"
+      interval = "10s"
+      round_interval = true
+      metric_batch_size = 1000
+      metric_buffer_limit = 10000
+      collection_jitter = "0s"
+      flush_interval = "10s"
+      flush_jitter = "0s"
+      precision = ""
+      debug = true
+      quiet = false
+      logfile = ""
+      omit_hostname = false
+    [[outputs.influxdb]]
+      urls = ["$MONITOR_HOST"]
+      database = "$MONITOR_DATABASE"
+      username = "$MONITOR_USERNAME"
+      password = "$MONITOR_PASSWORD"
+      timeout = "5s"
+      retention_policy = "rp_90d"
+      write_consistency = "any"
+      user_agent = "telegraf"
+      insecure_skip_verify = false
+    [[inputs.cpu]]
+      percpu = true
+      totalcpu = true
+      collect_cpu_time = false
+      report_active = false
+    [[inputs.disk]]
+      ignore_fs = ["tmpfs", "devtmpfs", "devfs"]
+    [[inputs.diskio]]
+    [[inputs.kernel]]
+    [[inputs.mem]]
+    [[inputs.processes]]
+    [[inputs.swap]]
+    [[inputs.system]]
+    [[inputs.docker]]
+      endpoint = "unix:///var/run/docker.sock"
+      container_names = []
+      timeout = "5s"
+      perdevice = true
+      total = false
+    [[inputs.kubernetes]]
+      url = "http://$HOSTNAME:10255"
+      bearer_token = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      insecure_skip_verify = true
+---
+# Section: Daemonset
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: telegraf
+  namespace: tick
+  labels:
+    k8s-app: telegraf
+spec:
+  selector:
+    matchLabels:
+      name: telegraf
+  template:
+    metadata:
+      labels:
+        name: telegraf
+    spec:
+      containers:
+      - name: telegraf
+        image: docker.io/telegraf:1.5.2
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 500m
+            memory: 500Mi
+        env:
+          - name: HOSTNAME
+            valueFrom:
+                fieldRef:
+                fieldPath: spec.nodeName
+          - name: "HOST_PROC"
+            value: "/rootfs/proc"
+          - name: "HOST_SYS"
+            value: "/rootfs/sys"
+          - name: ENV
+            valueFrom:
+                secretKeyRef:
+                name: telegraf
+                key: env
+          - name: MONITOR_USERNAME
+            valueFrom:
+                secretKeyRef:
+                name: telegraf
+                key: monitor_username
+          - name: MONITOR_PASSWORD
+            valueFrom:
+                secretKeyRef:
+                name: telegraf
+                key: monitor_password
+          - name: MONITOR_HOST
+            valueFrom:
+                secretKeyRef:
+                name: telegraf
+                key: monitor_host
+          - name: MONITOR_DATABASE
+            valueFrom:
+                secretKeyRef:
+                name: telegraf
+                key: monitor_database
+        volumeMounts:
+          - name: sys
+            mountPath: /rootfs/sys
+            readOnly: true
+          - name: docker
+            mountPath: /var/run/docker.sock
+            readOnly: true
+          - name: proc
+            mountPath: /rootfs/proc
+            readOnly: true
+          - name: docker-socket
+            mountPath: /var/run/docker.sock
+          - name: utmp
+            mountPath: /var/run/utmp
+            readOnly: true
+          - name: varrunutmp
+            mountPath: /var/run/utmp
+            readOnly: true
+          - name: varlog
+            mountPath: /var/log
+            readOnly: true
+          - name: varlibdockercontainers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+          - name: config
+            mountPath: /etc/telegraf
+        terminationGracePeriodSeconds: 30
+      volumes:
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: utmp
+          hostPath:
+            path: /var/run/utmp
+        - name: varrunutmp
+          hostPath:
+            path: /var/run/utmp
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: config
+          configMap:
+          name: telegraf
