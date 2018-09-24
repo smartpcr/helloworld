@@ -28,10 +28,6 @@ spec:
       containers:
       - name: fluentd
         image: k8s.gcr.io/fluentd-elasticsearch:v2.0.4
-        resources:
-          limits:
-            cpu: "1"
-            memory: "500Mi"
         env:
           - name: FLUENTD_ARGS
             value: --no-supervisor -q

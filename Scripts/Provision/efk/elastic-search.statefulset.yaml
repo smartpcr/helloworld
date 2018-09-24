@@ -43,10 +43,6 @@ spec:
             name: es-cerebro
       - name: es
         image: quay.io/pires/docker-elasticsearch-kubernetes:6.1.2
-        resources:
-          limits:
-            cpu: "2"
-            memory: "4Gi"
         ports:
         - containerPort: 9300
           name: transport

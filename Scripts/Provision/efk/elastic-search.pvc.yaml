@@ -6,7 +6,6 @@ metadata:
   labels:
     app: elastic-search
 spec:
-  storageClassName: rook-block
   accessModes:
   - ReadWriteOnce
   resources:
