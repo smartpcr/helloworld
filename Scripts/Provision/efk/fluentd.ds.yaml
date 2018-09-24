@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: efk
+  labels:
+    name: default-fluentd
+    app: fluentd
+    resource: logs
+spec:
+  # Service
+  selector:
+    matchLabels:
+      app: fluentd
+      tier: logging
+  # Pod
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        tier: logging
+        resource: logs
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: '' # logging's pretty important
+    spec:
+      serviceAccountName: fluentd
+      terminationGracePeriodSeconds: 120
+      containers:
+      - name: fluentd
+        image: k8s.gcr.io/fluentd-elasticsearch:v2.0.4
+        resources:
+          limits:
+            cpu: "1"
+            memory: "500Mi"
+        env:
+          - name: FLUENTD_ARGS
+            value: --no-supervisor -q
+          - name: FLUENTD_CONF
+            value: "fluent.conf"
+        ports:
+        - containerPort: 24224
+          hostPort: 24224
+          protocol: UDP
+        - containerPort: 24224
+          hostPort: 24224
+          protocol: TCP
+        volumeMounts:
+          - name: fluentd-logs
+            mountPath: /fluentd/log
+          - name: config
+            mountPath: /etc/fluent/config.d
+      volumes:
+      - name: fluentd-logs
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: fluentd-es-config

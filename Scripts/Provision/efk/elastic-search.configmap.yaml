@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elastic-search-config
+  namespace: efk
+data:
+  elastic.yml: |
+    ---
+    cluster:
+      name: ${CLUSTER_NAME}
+
+    node:
+      master: ${NODE_MASTER}
+      data: ${NODE_DATA}
+      name: ${NODE_NAME}
+      ingest: ${NODE_INGEST}
+      max_local_storage_nodes: ${MAX_LOCAL_STORAGE_NODES}
+
+    processors: ${PROCESSORS:1}
+
+    network.host: ${NETWORK_HOST}
+
+    path:
+      data: /data/data
+      logs: /data/log
+
+    bootstrap:
+      memory_lock: ${MEMORY_LOCK}
+
+    # Disable distribution
+    index.number_of_replicas: 0
+
+    http:
+      enabled: ${HTTP_ENABLE}
+      compression: true
+      cors:
+        enabled: ${HTTP_CORS_ENABLE}
+        allow-origin: ${HTTP_CORS_ALLOW_ORIGIN}
+        allow-credentials: true
+        allow-headers: X-Requested-With,X-Auth-Token,Content-Type, Content-Length, Authorization
+
+    xpack:
+      security: false
+
+    discovery:
+      zen:
+        ping.unicast.hosts: ${DISCOVERY_SERVICE}
+        minimum_master_nodes: ${NUMBER_OF_MASTERS}
