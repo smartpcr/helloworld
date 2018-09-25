@@ -58,7 +58,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: CLUSTER_NAME
-          value: monitoring
+          value: efk
         - name: DISCOVERY_SERVICE
           value: elasticsearch
         - name: NUMBER_OF_MASTERS

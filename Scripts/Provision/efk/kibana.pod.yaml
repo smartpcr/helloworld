@@ -9,11 +9,11 @@ spec:
       image: blacktop/kibana:6.1.3
       env:
         - name: CLUSTER_NAME
-          value: monitoring
+          value: efk
         - name: ELASTICSEARCH_URL
           value: http://elasticsearch:9200
         - name: SERVER_BASEPATH
-          value: /api/v1/namespaces/monitoring/services/kibana
+          value: /api/v1/namespaces/efk/services/kibana
       ports:
       - containerPort: 5601
         name: ui

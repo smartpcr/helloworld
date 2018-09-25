@@ -20,7 +20,7 @@ data:
 
       <match app.*>
          @type elasticsearch
-         host elasticsearch.monitoring
+         host elasticsearch.efk
          port 9200
          index_name fluentd
          type_name fluentd
