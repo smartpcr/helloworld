@@ -13,6 +13,13 @@
 # brew update
 brew update 
 
+# on mac, when hit problem: missing xcrun at: /Library/Developer/CommandLineTools/usr/bin/xcrun
+# run the following 
+xcode-select --install
+xcode-select --switch /Applications/Xcode.app
+xcode-select --switch /Library/Developer/CommandLineTools
+
+
 # manually install the following
 # 1. jdk (do not use v9 or higher if you use git credential manager)
 # 2. docker
@@ -41,8 +48,47 @@ brew cask install virtualbox
 echo "installing minikube"
 brew cask install minikube 
 
+echo "installing helm"
+brew install kubernetes-helm
+
+echo "installing draft"
+brew tap azure/draft && brew install draft
+draft init 
+eval $(minikube docker-env)
+
+echo "installing terraform..."
+brew install terraform
+
+echo "installing additional terraform providers for aks..."
+curl -L -o - https://github.com/sl1pm4t/terraform-provider-kubernetes/releases/download/v1.0.7-custom/terraform-provider-kubernetes_darwin-amd64.gz | gunzip > terraform-provider-kubernetes
+chmod +x ./terraform-provider-kubernetes
+
+echo "Installing jq..."
+brew install jq
+
+echo "Installing powershell"
+brew cask install powershell
+
+echo "Installing python modules..."
+sudo pip install pyyaml
+
+echo "Installing halyard (only if you need to install spinnaker)..."
+curl -O https://raw.githubusercontent.com/spinnaker/halyard/master/install/macos/InstallHalyard.sh
+sudo bash InstallHalyard.sh
+
+
+kubectl create -f ./helm-rbac.yaml 
+helm init --service-account tiller
+helm search
+helm repo update
+
+echo "installing wordpress..."
+helm install stable/wordpress
+
 echo "verifying..."
+brew install docker 
 docker --version 
+brew install docker-compose
 docker-compose --version 
 docker-machine --version 
 vboxManage --version
@@ -83,40 +129,3 @@ kubectl exec busybox cat /etc/resolv.conf
 # ingress
 minikube addons enable ingress
 kubectl create -f ./src/configs/ingress.yaml
-
-echo "installing helm"
-brew install kubernetes-helm
-
-echo "installing draft"
-brew tap azure/draft && brew install draft
-draft init 
-eval $(minikube docker-env)
-
-kubectl create -f ./helm-rbac.yaml 
-helm init --service-account tiller
-helm search
-helm repo update
-
-echo "installing wordpress..."
-helm install stable/wordpress
-
-echo "installing terraform..."
-brew install terraform
-
-echo "installing additional terraform providers for aks..."
-curl -L -o - https://github.com/sl1pm4t/terraform-provider-kubernetes/releases/download/v1.0.7-custom/terraform-provider-kubernetes_darwin-amd64.gz | gunzip > terraform-provider-kubernetes
-chmod +x ./terraform-provider-kubernetes
-
-echo "Installing jq..."
-brew install jq
-
-echo "Installing powershell"
-brew cask install powershell
-
-echo "Installing python modules..."
-sudo pip install pyyaml
-
-echo "Installing halyard (only if you need to install spinnaker)..."
-# curl -O https://raw.githubusercontent.com/spinnaker/halyard/master/install/macos/InstallHalyard.sh
-sudo bash InstallHalyard.sh
-
