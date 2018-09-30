@@ -70,6 +70,7 @@ echo "Installing powershell"
 brew cask install powershell
 
 echo "Installing python modules..."
+brew install python
 sudo pip install pyyaml
 
 echo "Installing halyard (only if you need to install spinnaker)..."
