@@ -1,5 +1,5 @@
 
-Install-Module powershell-yaml
+Install-Module powershell-yaml -AllowClobber -Force
     
 
 function Get-EnvironmentSettings {

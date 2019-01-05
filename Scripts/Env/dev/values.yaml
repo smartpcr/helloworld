@@ -16,4 +16,4 @@ helmStorageAccountName: rrdhelm
 helmBlobContainerName: helm
 
 # description: not used in provision
-purpose: istio
+purpose: linkerd
