@@ -8,19 +8,19 @@ function Get-EnvironmentSettings {
         [string] $EnvRootFolder
     )
     
-    $values = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | ConvertFrom-Yaml
+    $values = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | cfy
     if ($EnvName) {
         $envFolder = Join-Path $EnvRootFolder $EnvName
         $envValueYamlFile =  Join-Path $envFolder "values.yaml"
         if (Test-Path $envValueYamlFile) {
-            $envValues = Get-Content $envValueYamlFile -Raw | ConvertFrom-Yaml
+            $envValues = Get-Content $envValueYamlFile -Raw | cfy
             Copy-YamlObject -fromObj $envValues -toObj $values
         }
     }
 
     $bootstrapTemplate = Get-Content "$EnvRootFolder\bootstrap.yaml" -Raw
     $bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $values
-    $bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml
+    $bootstrapValues = $bootstrapTemplate | cfy
 
     return $bootstrapValues
 }
