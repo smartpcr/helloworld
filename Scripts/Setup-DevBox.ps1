@@ -115,14 +115,11 @@ choco install gradle -y # choco upgrade gradle
 # pip install flask
 # pip install prometheus_client
 
-<<<<<<< HEAD
 # setup golang
 choco install golang -y
 # choco upgrade golang
 
 
-=======
->>>>>>> 1727f9d53d803d6f44c0fea79afaa38a5c20f6ee
 # JQ
 choco install jq -y
 
