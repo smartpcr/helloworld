@@ -105,7 +105,6 @@ choco install openssl.light -y
 
 # setup java
 choco install jdk8 -params 'installdir=c:\\java8' -Y
-[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\java8\jre", "Machine")
 choco install maven -y  # choco upgrade maven
 choco install gradle -y # choco upgrade gradle
 
@@ -117,8 +116,8 @@ choco install gradle -y # choco upgrade gradle
 # pip install prometheus_client
 
 # setup golang
-choco install golang.install -y
-# choco upgrade golang.install
+choco install golang -y
+# choco upgrade golang
 
 
 # JQ
