@@ -69,13 +69,7 @@ else {
 }
 
 if (-not (Test-DockerInstalled)) {
-    Write-Host "Installing docker ce for windows.."
-    $dockerForWindow = "https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe"
-    $tempFile = "C:\users\$env:username\downloads\Docker for Windows Installer.exe"
-    $webClient = New-Object System.Net.WebClient
-    $webClient.DownloadFile($dockerForWindow, $tempFile)
-    Start-Process $tempFile -Wait 
-    Remove-Item $tempFile -Force 
+    Install-Docker
 }
 else {
     Write-Host "Docker is already installed"
@@ -115,21 +109,15 @@ choco install gradle -y # choco upgrade gradle
 # pip install flask
 # pip install prometheus_client
 
-# setup golang
+# go
 choco install golang -y
+[System.Environment]::SetEnvironmentVariable("GOROOT", "C:\GO", [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable("GOPATH", "E:\GO", [System.EnvironmentVariableTarget]::User)
 # choco upgrade golang
-
+go version 
 
 # JQ
 choco install jq -y
 
 # trust the gallery so that I can import yamlUtil without prompt
 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
-# GO
-[System.Environment]::SetEnvironmentVariable("GOROOT", "C:\GO", [System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable("GOPATH", "E:\GO", [System.EnvironmentVariableTarget]::User)
-choco install golang -y 
-# [System.Environment]::GetEnvironmentVariable("GOROOT", [System.EnvironmentVariableTarget]::Machine)
-# [System.Environment]::GetEnvironmentVariable("GOPATH", [System.EnvironmentVariableTarget]::User)
-go version 

@@ -62,3 +62,20 @@ function Test-DockerInstalled() {
     catch {}
     return $false 
 }
+
+function Install-Docker() {
+    if (($winVer -like "*Windows Server 2016*") -or ($winVer -like "*Windows Server 2019*")) {
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+        Install-Module -Name DockerMsftProvider -Force
+        Install-Package -Name docker -ProviderName DockerMsftProvider -Force
+    }
+    else {
+        Write-Host "Installing docker ce for windows.."
+        $dockerForWindow = "https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe"
+        $tempFile = "C:\users\$env:username\downloads\Docker for Windows Installer.exe"
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($dockerForWindow, $tempFile)
+        Start-Process $tempFile -Wait 
+        Remove-Item $tempFile -Force 
+    }
+}
