@@ -69,7 +69,8 @@ else {
 }
 
 if (-not (Test-DockerInstalled)) {
-    Install-Docker
+    Install-Docker 
+    Restart-Computer -Force
 }
 else {
     Write-Host "Docker is already installed"

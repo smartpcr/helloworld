@@ -69,12 +69,21 @@ function Get-WindowsVersion {
 }
 
 function Install-Docker() {
+    param(
+        [switch]$UseWindowsContainer
+    )
     $winVer = Get-WindowsVersion
     if (($winVer -like "*Windows Server 2016*") -or ($winVer -like "*Windows Server 2019*")) {
         Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-        Install-Module -Name DockerMsftProvider -Force
-        Install-Package -Name docker -ProviderName DockerMsftProvider -Force
-
+        if ($UseWindowsContainer) {
+            Install-Module -Name DockerMsftProvider -Force
+            Install-Package -Name docker -ProviderName DockerMsftProvider -Force
+        }
+        else {
+            Uninstall-Package -Name docker -ProviderName  DockerMSFTProvider -Force 
+            Install-Module -Name DockerProvider -Force
+            Install-Package Docker -ProviderName DockerProvider -RequiredVersion preview -Force
+        }
         # install docker-compose 
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $dockerComposeVersion = "1.23.2"
