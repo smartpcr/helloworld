@@ -63,11 +63,23 @@ function Test-DockerInstalled() {
     return $false 
 }
 
+function Get-WindowsVersion {
+    (Get-WmiObject win32_operatingsystem).caption
+    #(Get-WmiObject -class Win32_OperatingSystem).Version
+}
+
 function Install-Docker() {
+    $winVer = Get-WindowsVersion
     if (($winVer -like "*Windows Server 2016*") -or ($winVer -like "*Windows Server 2019*")) {
         Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
         Install-Module -Name DockerMsftProvider -Force
         Install-Package -Name docker -ProviderName DockerMsftProvider -Force
+
+        # install docker-compose 
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $dockerComposeVersion = "1.23.2"
+        $dockerComposeInstallFile = "$Env:ProgramFiles\docker\docker-compose.exe"
+        Invoke-WebRequest "https://github.com/docker/compose/releases/download/$dockerComposeVersion/docker-compose-Windows-x86_64.exe" -UseBasicParsing -OutFile $dockerComposeInstallFile
     }
     else {
         Write-Host "Installing docker ce for windows.."
