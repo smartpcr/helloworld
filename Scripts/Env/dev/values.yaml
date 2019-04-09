@@ -1,8 +1,8 @@
 ﻿# global 
 owner: xd
 envName: dev
-subscriptionName: RRD MSDN Ultimate
-subscriptionAlias: rrdult
+subscriptionName: Compliance_Tools_Eng
+subscriptionAlias: onees
 
 # acr
 acrOwnerEmail: xiaodoli@microsoft.com
