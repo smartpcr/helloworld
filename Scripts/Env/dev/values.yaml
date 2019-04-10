@@ -12,8 +12,8 @@ aksDnsPrefix: hw-aks-xd
 aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
 
 # helm repo
-helmStorageAccountName: rrdhelm
+helmStorageAccountName: oneeshelm
 helmBlobContainerName: helm
 
 # description: not used in provision
-purpose: linkerd
+purpose: devspace

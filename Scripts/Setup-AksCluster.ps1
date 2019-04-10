@@ -122,8 +122,7 @@ $dashboardAuthYamlFile = Join-Path $templatesFolder "dashboard-admin.yaml"
 kubectl apply -f $dashboardAuthYamlFile
 
 LogInfo -Message "Grant current user as cluster admin..."
-$currentUserEmail = $(az account show | ConvertFrom-Json).user.name
-$currentPrincipalName = $(az ad user list --query "[?mail=='$currentUserEmail']" | ConvertFrom-Json).userPrincipalName 
+$currentPrincipalName = $(az ad signed-in-user show | ConvertFrom-Json).userPrincipalName 
 $aadUser = az ad user show --upn-or-object-id $currentPrincipalName | ConvertFrom-Json
 $userAuthTplFile = Join-Path $templatesFolder "user-admin.tpl"
 $userAuthYamlFile = Join-Path $devEnvFolder "user-admin.yaml"
@@ -146,6 +145,14 @@ az aks enable-addons `
     --resource-group $bootstrapValues.aks.resourceGroup `
     --name $bootstrapValues.aks.clusterName `
     --addons http_application_routing | Out-Null
+
+if ($bootstrapValues.aks.useDevSpaces) {
+    LogInfo -Message "Enable devspaces on AKS cluster..."
+    # NOTE this still installs a preview version of devspace cli, if you installed stable version, do not install cli
+    az aks use-dev-spaces `
+        --resource-group $bootstrapValues.aks.resourceGroup `
+        --name $bootstrapValues.aks.clusterName | Out-Null 
+}
 
 <# run the following block to switch to windows-based authentication, token expiration is much quicker 
 LogInfo -Message "reset kubernetes context..."

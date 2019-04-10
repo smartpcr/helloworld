@@ -25,4 +25,7 @@ else {
 }
 
 $kubeContextName = "$(kubectl config current-context)" 
-Write-Host "You are now connected to kubenetes context: '$kubeContextName'" 
+Write-Host "You are now connected to kubenetes context: '$kubeContextName'" -ForegroundColor Green
+
+Write-Host "Browse aks dashboard..." -ForegroundColor Green
+az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName

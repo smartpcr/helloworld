@@ -63,6 +63,7 @@ aks:
     ssh_private_key: "{{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-ssh-key"
     ssh_cert_pwd_ame: "{{ .Values.productShortName }}-{{ .Values.envName }}-{{ .Values.owner }}-k8s-ssh-pwd"
     purpose: "{{ .Values.purpose }}"
+    useDevSpaces: true
 kvSample:
     servicePrincipal: "{{ .Values.subscriptionAlias }}-readonly-spn"
     servicePrincipalPwd: "{{ .Values.subscriptionAlias }}-readonly-spn-pwd"
