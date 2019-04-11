@@ -46,7 +46,7 @@ aks:
     resourceGroup: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-k8s-rg"
     location: "{{ .Values.global.location }}"
     dnsPrefix: {{ .Values.aks.aksDnsPrefix }}
-    version: "1.13.5"
+    version: "1.11.9"
     servicePrincipal: "{{ .Values.global.productShortName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-k8s-spn"
     servicePrincipalPassword: "{{ .Values.global.productShortName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-k8s-spn-pwd"
     clientAppName: "{{ .Values.global.productShortName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-k8s-client"
