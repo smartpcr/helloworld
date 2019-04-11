@@ -1,19 +1,18 @@
-# global 
-owner: xd
-envName: int
-subscriptionName: RRD MSDN Ultimate
-subscriptionAlias: rrdult
+global:
+    owner: xd
+    envName: int
+    subscriptionName: RRD MSDN Ultimate
+    subscriptionAlias: rrdult
 
-# acr
-acrOwnerEmail: xiaodoli@microsoft.com
+acr:
+    email: xiaodoli@microsoft.com
 
-# aks
-aksDnsPrefix: hw-aks-xd
-aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
+aks:
+    aksDnsPrefix: hw-aks-xd
+    aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
+    purpose: spinnaker
 
-# helm repo
-helmStorageAccountName: rrdhelm
-helmBlobContainerName: helm
+helm:
+    helmStorageAccountName: rrdhelm
+    helmBlobContainerName: helm
 
-# description: not used in provision
-purpose: spinnaker

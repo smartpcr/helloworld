@@ -1,19 +1,17 @@
-# global 
-owner: xd
-envName: dev3
-subscriptionName: RRD MSDN Premium
-subscriptionAlias: rrdprem
+global:
+    owner: xd
+    envName: dev3
+    subscriptionName: RRD MSDN Premium
+    subscriptionAlias: rrdprem
 
-# acr
-acrOwnerEmail: xiaodoli@microsoft.com
+acr:
+    email: xiaodoli@microsoft.com
 
-# aks
-aksDnsPrefix: hw-aks-xd
-aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
+aks:
+    aksDnsPrefix: hw-aks-xd
+    aksOwnerAadUpn: lingxd_gmail.com#EXT#@xiaodongxlirrd.onmicrosoft.com
+    purpose: kv-flex-volume,kms
 
-# helm repo
-helmStorageAccountName: rrdhelm
-helmBlobContainerName: helm
-
-# description: not used in provision
-purpose: kv-flex-volume,kms
+helm:
+    helmStorageAccountName: rrdhelm
+    helmBlobContainerName: helm

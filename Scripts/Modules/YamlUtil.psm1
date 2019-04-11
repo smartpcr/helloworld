@@ -1,6 +1,5 @@
 
-Install-Module powershell-yaml -AllowClobber -Force
-    
+Import-Module .\Modules\powershell-yaml\powershell-yaml.psm1 -Force
 
 function Get-EnvironmentSettings {
     param(
@@ -8,19 +7,19 @@ function Get-EnvironmentSettings {
         [string] $EnvRootFolder
     )
     
-    $values = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | cfy
+    $values = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | ConvertFrom-Yaml2
     if ($EnvName) {
         $envFolder = Join-Path $EnvRootFolder $EnvName
         $envValueYamlFile =  Join-Path $envFolder "values.yaml"
         if (Test-Path $envValueYamlFile) {
-            $envValues = Get-Content $envValueYamlFile -Raw | cfy
+            $envValues = Get-Content $envValueYamlFile -Raw | ConvertFrom-Yaml2
             Copy-YamlObject -fromObj $envValues -toObj $values
         }
     }
 
     $bootstrapTemplate = Get-Content "$EnvRootFolder\bootstrap.yaml" -Raw
-    $bootstrapTemplate = Set-Values -valueTemplate $bootstrapTemplate -settings $values
-    $bootstrapValues = $bootstrapTemplate | cfy
+    $bootstrapTemplate = Set-YamlValues -valueTemplate $bootstrapTemplate -settings $values
+    $bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml2
 
     return $bootstrapValues
 }
@@ -56,26 +55,43 @@ function Copy-YamlObject {
     }
 }
 
-function Set-Values {
+function Set-YamlValues {
     param (
         [object] $valueTemplate,
         [object] $settings
     )
 
-    $regex = New-Object System.Text.RegularExpressions.Regex("\{\{\s*\.Values\.(\w+)\s*\}\}")
+    $regex = New-Object System.Text.RegularExpressions.Regex("\{\{\s*\.Values\.([a-zA-Z\.0-9_]+)\s*\}\}")
+    $replacements = New-Object System.Collections.ArrayList
     $match = $regex.Match($valueTemplate)
     while ($match.Success) {
         $toBeReplaced = $match.Value
         $searchKey = $match.Groups[1].Value
-        $found = $settings.Keys | Where-Object { $_ -eq $searchKey }
+
+        $found = GetPropertyValue -subject $settings -propertyPath $searchKey
         if ($found) {
-            $replaceValue = $settings.Item($found)
-            $valueTemplate = ([string]$valueTemplate).Replace($toBeReplaced, $replaceValue)
-            $match = $regex.Match($valueTemplate)
+            if ($found -is [string] -or $found -is [int] -or $found -is [bool]) {
+                $replaceValue = $found.ToString()
+                $replacements.Add(@{
+                        oldValue = $toBeReplaced
+                        newValue = $replaceValue
+                    })
+            }
+            else {
+                Write-Warning "Invalid value for path '$searchKey': $found"
+            }
         }
         else {
-            $match = $match.NextMatch()
+            Write-Warning "Unable to find value with path '$searchKey'"
         }
+        
+        $match = $match.NextMatch()
+    }
+    
+    $replacements | ForEach-Object {
+        $oldValue = $_.oldValue 
+        $newValue = $_.newValue 
+        $valueTemplate = $valueTemplate.Replace($oldValue, $newValue)
     }
 
     return $valueTemplate
@@ -104,4 +120,25 @@ function ReplaceValuesInYamlFile {
     }
     $buffer.AppendLine($replaceValue) | Out-Null
     $buffer.ToString() | Out-File $YamlFile -Encoding ascii
+}
+
+function GetPropertyValue {
+    param(
+        [object]$subject,
+        [string]$propertyPath
+    )
+
+    $propNames = $propertyPath.Split(".")
+    $currentObject = $subject
+    $propnames | ForEach-Object {
+        $propName = $_ 
+        if ($currentObject.ContainsKey($propName)) {
+            $currentObject = $currentObject[$propName]
+        }
+        else {
+            return $null 
+        }
+    }
+
+    return $currentObject
 }

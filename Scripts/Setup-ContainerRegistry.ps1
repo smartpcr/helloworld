@@ -60,17 +60,3 @@ $acrPassword = "$(az acr credential show -n $acrName --query ""passwords[0].valu
 LogInfo -Message "ACR: '$acrName', user: $acrUsername, password: ***"
 LogInfo -Message "Store acr password to key vault '$vaultName' with name '$acrPwdSecretName'"
 az keyvault secret set --vault-name $vaultName --name $acrPwdSecretName --value $acrPassword | Out-Null
-
-<# # No need to assign contributor role (inherited from subscription scope)
-# grant read/write role to service principal 
-$acrId = "$(az acr show --name $acrName --query id --output tsv)"
-$spAppObjId = "$(az ad sp show --id $($bootstrapValues.global.servicePrincipalAppId) --query objectId --output tsv)"
-# AAD propagation error: "No matches in graph database for ..."
-
-az role assignment create --assignee $spAppObjId --scope $acrId --role Reader 
-#>
-
-# return @{
-#     acrUsername = $acrUsername
-#     acrPassword = $acrPassword
-# }

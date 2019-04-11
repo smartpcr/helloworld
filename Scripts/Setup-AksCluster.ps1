@@ -15,9 +15,9 @@ if (!$scriptFolder) {
     $scriptFolder = Get-Location
 }
 
-$envFolder = Join-Path $scriptFolder "Env"
+$envRootFolder = Join-Path $scriptFolder "Env"
 $moduleFolder = Join-Path $scriptFolder "modules"
-$credentialFolder = Join-Path $envFolder "credential"
+$credentialFolder = Join-Path $envRootFolder "credential"
 $envCredentialFolder = Join-Path $credentialFolder $EnvName
 Import-Module (Join-Path $moduleFolder "common2.psm1") -Force
 Import-Module (Join-Path $moduleFolder "CertUtil.psm1") -Force
@@ -28,7 +28,7 @@ LogTitle -Message "Setting up AKS cluster for environment '$EnvName'..."
 
 
 LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
-$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
+$bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envRootFolder
 $azAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName 
 $aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
 if (!$aksSpn) {
@@ -116,8 +116,8 @@ LogStep -Step 5 -Message "Set AKS context..."
 # rm -rf /Users/xiaodongli/.kube/config
 az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
 LogInfo -Message "Grant dashboard access..."
-$templatesFolder = Join-Path $envFolder "templates"
-$devEnvFolder = Join-Path $envFolder $EnvName
+$templatesFolder = Join-Path $envRootFolder "templates"
+$devenvRootFolder = Join-Path $envRootFolder $EnvName
 $dashboardAuthYamlFile = Join-Path $templatesFolder "dashboard-admin.yaml"
 kubectl apply -f $dashboardAuthYamlFile
 
@@ -125,7 +125,7 @@ LogInfo -Message "Grant current user as cluster admin..."
 $currentPrincipalName = $(az ad signed-in-user show | ConvertFrom-Json).userPrincipalName 
 $aadUser = az ad user show --upn-or-object-id $currentPrincipalName | ConvertFrom-Json
 $userAuthTplFile = Join-Path $templatesFolder "user-admin.tpl"
-$userAuthYamlFile = Join-Path $devEnvFolder "user-admin.yaml"
+$userAuthYamlFile = Join-Path $devenvRootFolder "user-admin.yaml"
 Copy-Item -Path $userAuthTplFile -Destination $userAuthYamlFile -Force
 ReplaceValuesInYamlFile -YamlFile $userAuthYamlFile -PlaceHolder "ownerUpn" -Value $aadUser.objectId
 kubectl apply -f $userAuthYamlFile
