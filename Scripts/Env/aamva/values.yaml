@@ -1,0 +1,17 @@
+global:
+    owner: xd
+    envName: dev
+    productName: "devspace"
+    productShortName: "ds"
+    subscriptionName: AAMVA MSDN
+    tenantId: bdfb6927-543a-47bc-af5b-95bc2279b99e
+    subscriptionAlias: aamva
+acr:
+    email: lingxd@gmail.com
+aks:
+    aksDnsPrefix: hw-aks-xd
+    aksOwnerAadUpn: lingxd@gmail.com
+    purpose: devspace
+helm:
+    helmStorageAccountName: oneeshelm
+    helmBlobContainerName: helm
