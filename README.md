@@ -64,5 +64,5 @@ The product will be used by other software developers to:
     - its permission is set 
         ![client app permission](https://github.com/smartpcr/helloworld/blob/master/Instruction/client-app-permissions.png)
     - API permission is granted, make sure user impersonation is checked
-        ![client app impersonation](https://github.com/smartpcr/helloworld/blob/master/Instruction/client-app-impersonation.png)
+        ![client app impersonation](https://github.com/smartpcr/helloworld/blob/master/Instruction/client-app-impersonation.PNG)
     
