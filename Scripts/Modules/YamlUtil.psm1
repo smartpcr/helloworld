@@ -118,7 +118,7 @@ function ReplaceValuesInYamlFile {
             $buffer.AppendLine($line) | Out-Null
         }
     }
-    $buffer.AppendLine($replaceValue) | Out-Null
+    
     $buffer.ToString() | Out-File $YamlFile -Encoding ascii
 }
 
