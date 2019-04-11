@@ -49,5 +49,20 @@ The product will be used by other software developers to:
 
 ## Bootstrap Environment
 
-1. Override settings in .\Setup\Env\dev\values.yaml
-2. Setup service principal authentication and devbox pre-requirements by running "__.\Setup\bootstrap.ps1__" in ___windows___ or "__./Setup/bootstrap.sh__" in ___mac___
+1. Create a new environment. for example, for `dev` envorinment, set its override values here: `\Scripts\Env\dev\values.yaml`
+2. Setup service principal authentication and devbox pre-requirements by running `.\Scripts\bootstrap.ps1 -EnvName dev`
+3. Navigate to azure portal and AAD app registration, look for cluster app, make sure:
+    - its secret is set: 
+        ![aad app secret](./instruction/cluster-app-secrets.png)
+    - API permissions are granted
+        ![aks app permission](./instruction/cluster-app-permissions.png)
+    - owner is set
+        ![aks app owner](./instruction/cluster-app-owner.png)
+4. Look for aks client app, make sure:
+    - owner is set 
+        ![client app owner](./instruction/client-app-owner.png)
+    - its permission is set 
+        ![client app permission](./instruction/client-app-permissions.png)
+    - API permission is granted, make sure user impersonation is checked
+        ![client app impersonation](./instruction/client-app-impersonation.png)
+    

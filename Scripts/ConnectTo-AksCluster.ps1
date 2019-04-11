@@ -28,4 +28,13 @@ $kubeContextName = "$(kubectl config current-context)"
 Write-Host "You are now connected to kubenetes context: '$kubeContextName'" -ForegroundColor Green
 
 Write-Host "Browse aks dashboard..." -ForegroundColor Green
+$answer1 = Read-Host "Make sure AKS cluster AAD app ($($bootstrapValues.aks.servicePrincipal)) required permission is granted: (Y/n)"
+if ($answer1 -ieq "n") {
+    return 
+}
+$answer2 = Read-Host "Make sure AKS client AAD app ($($bootstrapValues.aks.clientAppName)) required permission is granted: (Y/n)"
+if ($answer2 -ieq "n") {
+    return 
+}
+
 az aks browse --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName
