@@ -8,7 +8,7 @@ acr:
     email: xiaodoli@microsoft.com
 aks:
     aksDnsPrefix: hw-aks-xd
-    aksOwnerAadUpn: xiaodoli.onmicrosoft.com
+    aksOwnerAadUpn: xiaodoli@microsoft.com
     purpose: devspace
 helm:
     helmStorageAccountName: oneeshelm
