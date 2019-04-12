@@ -20,7 +20,7 @@ SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 LogTitle -Message "Setting up App Insights for environment '$EnvName'..."
 
 
-LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
+LogStep -Step 1 -Message "Login and retrieve env settings..."
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envRootFolder
 LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
 
@@ -30,7 +30,7 @@ if ($bootstrapValues.global.appInsights) {
     & $scriptFolder\Setup-ApplicationInsights.ps1 -EnvName $EnvName
 }
 if ($bootstrapValues.global.mongoDb) {
-    & $scriptFolder\Setup-ContainerRegistry.ps1 -EnvName $EnvName
+    & $scriptFolder\Setup-CosmosDb.ps1 -EnvName $EnvName
 }
 
 & $scriptFolder\Setup-AksCluster.ps1 -EnvName $EnvName

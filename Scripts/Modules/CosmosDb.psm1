@@ -64,7 +64,7 @@ function EnsureCollectionExists() {
 
     $found = az cosmosdb collection show --collection-name $CollectionName --db-name $DbName --resource-group $ResourceGroupName --url-connection "https://$AccountName.documents.azure.com:443/" --key $CosmosDbKey
     if (!$found) {
-        az cosmosdb collection create --collection-name $CollectionName --db-name $DbName --resource-group $ResourceGroupName --name $AccountName --throughput $Throughput
+        az cosmosdb collection create --collection-name $CollectionName --db-name $DbName --resource-group $ResourceGroupName --name $AccountName --throughput $Throughput | Out-Null
     }
 }
 

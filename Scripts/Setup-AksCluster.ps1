@@ -158,7 +158,8 @@ kubectl.exe create clusterrolebinding tiller --clusterrole cluster-admin --servi
 helm.exe init --service-account tiller --upgrade
 
 
-LogStep -Step 7 -Message "Enable addons for istio integration...(will take a minute)"
+LogStep -Step 7 -Message "Enable addons...(will take a minute)"
+LogInfo -Message "Enable http_application_routing on AKS cluster..."
 az aks disable-addons `
     --resource-group $bootstrapValues.aks.resourceGroup `
     --name $bootstrapValues.aks.clusterName `
