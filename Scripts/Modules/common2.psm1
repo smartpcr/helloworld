@@ -249,3 +249,15 @@ function LoginAsServicePrincipal {
     LogInfo -Message "Login as service principal '$spnName'"
     az login --service-principal -u "http://$spnName" -p $privateKeyFilePath --tenant $tenantId | Out-Null
 }
+
+function LoginRmSubscription {
+    param (
+        [string]$SubscriptionName
+    )
+
+    $context = Get-AzureRmContext
+    if (!$context -or $context.Subscription.Name -ine $SubscriptionName) {
+        Login-AzureRmAccount | Out-Null
+        Set-AzureRmContext -Subscription $Subscription | Out-Null
+    }
+}

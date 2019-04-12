@@ -34,17 +34,17 @@ LogTitle -Message "Setting up AKS cluster for environment '$EnvName'..."
 LogStep -Step 1 -Message "Login and retrieve aks spn pwd..."
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envRootFolder
 $azAccount = LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName 
-$aksSpn = az ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
+$aksSpn = az.cmd ad sp list --display-name $bootstrapValues.aks.servicePrincipal | ConvertFrom-Json
 if (!$aksSpn) {
     throw "AKS service principal is not setup yet"
 }
-$aksClientApp = az ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
+$aksClientApp = az.cmd ad app list --display-name $bootstrapValues.aks.clientAppName | ConvertFrom-Json
 if (!$aksClientApp) {
     throw "AKS client app is not setup yet"
 }
 $aksSpnPwdSecretName = $bootstrapValues.aks.servicePrincipalPassword
-$aksSpnPwd = "$(az keyvault secret show --vault-name $bootstrapValues.kv.name --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
-az group create --name $bootstrapValues.aks.resourceGroup --location $bootstrapValues.aks.location | Out-Null
+$aksSpnPwd = "$(az.cmd keyvault secret show --vault-name $bootstrapValues.kv.name --name $aksSpnPwdSecretName --query ""value"" -o tsv)"
+az.cmd group create --name $bootstrapValues.aks.resourceGroup --location $bootstrapValues.aks.location | Out-Null
 
 
 LogStep -Step 2 -Message "Ensure SSH key is present for linux vm access..."
@@ -62,17 +62,17 @@ LogInfo -Message "this would take 10 - 30 min, Go grab a coffee"
 # az aks delete `
 #     --resource-group $bootstrapValues.aks.resourceGroup `
 #     --name $bootstrapValues.aks.clusterName --yes 
-$aksClusters = az aks list --resource-group $bootstrapValues.aks.resourceGroup --query "[?name == '$($bootstrapValues.aks.clusterName)']" | ConvertFrom-Json
+$aksClusters = az.cmd aks list --resource-group $bootstrapValues.aks.resourceGroup --query "[?name == '$($bootstrapValues.aks.clusterName)']" | ConvertFrom-Json
 if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
     LogInfo -Message "Creating AKS Cluster '$($bootstrapValues.aks.clusterName)'..."
     
     $currentUser = $env:USERNAME
     if (!$currentUser) {
-        $currentUser = id -un
+        $currentUser = id.exe -un
     }
     $currentMachine = $env:COMPUTERNAME
     if (!$currentMachine) {
-        $currentMachine = hostname 
+        $currentMachine = HOSTNAME.EXE 
     }
     $tags = @()
     $tags += "environment=$EnvName" 
@@ -82,7 +82,7 @@ if ($null -eq $aksClusters -or $aksClusters.Count -eq 0) {
     $tags += "fromWorkstation=$currentMachine"
     $tags += "purpose=$($bootstrapValues.aks.purpose)"
     
-    az aks create `
+    az.cmd aks create `
         --resource-group $bootstrapValues.aks.resourceGroup `
         --name $bootstrapValues.aks.clusterName `
         --kubernetes-version $bootstrapValues.aks.version `
@@ -106,46 +106,58 @@ else {
 LogStep -Step 4 -Message "Ensure aks service principal has access to ACR..."
 $acrName = $bootstrapValues.acr.name
 $acrResourceGroup = $bootstrapValues.acr.resourceGroup
-$acrFound = "$(az acr list -g $acrResourceGroup --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
+$acrFound = "$(az.cmd acr list -g $acrResourceGroup --query ""[?contains(name, '$acrName')]"" --query [].name -o tsv)"
 if (!$acrFound) {
     throw "Please setup ACR first by running Setup-ContainerRegistry.ps1 script"
 }
-$acrId = "$(az acr show --name $acrName --query id --output tsv)"
+$acrId = "$(az.cmd acr show --name $acrName --query id --output tsv)"
 $aksSpnName = $bootstrapValues.aks.servicePrincipal
-$aksSpn = az ad sp list --display-name $aksSpnName | ConvertFrom-Json
-az role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
+$aksSpn = az.cmd ad sp list --display-name $aksSpnName | ConvertFrom-Json
+az.cmd role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
+
+LogInfo -Message "Creating kube secret to store docker repo credential..."
+$acr = az.cmd acr show -g $rgName -n $acrName | ConvertFrom-Json
+$acrUsername = $acrName
+$acrPassword = "$(az.cmd acr credential show -n $acrName --query ""passwords[0].value"")"
+$acrLoginServer = $acr.loginServer
+kubectl.exe create -n default secret docker-registry regcred `
+    --docker-server=$acrLoginServer `
+    --docker-username=$acrUsername `
+    --docker-password=$acrPassword `
+    --docker-email=$bootstrapValues.acr.email | Out-Null
+
 
 
 LogStep -Step 5 -Message "Set AKS context..."
 # rm -rf /Users/xiaodongli/.kube/config
-az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
+az.cmd aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
 LogInfo -Message "Grant dashboard access..."
 $templatesFolder = Join-Path $envRootFolder "templates"
 $devenvRootFolder = Join-Path $envRootFolder $EnvName
 $dashboardAuthYamlFile = Join-Path $templatesFolder "dashboard-admin.yaml"
-kubectl apply -f $dashboardAuthYamlFile
+kubectl.exe apply -f $dashboardAuthYamlFile
 
 LogInfo -Message "Grant current user as cluster admin..."
-$currentPrincipalName = $(az ad signed-in-user show | ConvertFrom-Json).userPrincipalName 
-$aadUser = az ad user show --upn-or-object-id $currentPrincipalName | ConvertFrom-Json
+$currentPrincipalName = $(az.cmd ad signed-in-user show | ConvertFrom-Json).userPrincipalName 
+$aadUser = az.cmd ad user show --upn-or-object-id $currentPrincipalName | ConvertFrom-Json
 $userAuthTplFile = Join-Path $templatesFolder "user-admin.tpl"
 $userAuthYamlFile = Join-Path $devenvRootFolder "user-admin.yaml"
 Copy-Item -Path $userAuthTplFile -Destination $userAuthYamlFile -Force
 ReplaceValuesInYamlFile -YamlFile $userAuthYamlFile -PlaceHolder "ownerUpn" -Value $aadUser.objectId
-kubectl apply -f $userAuthYamlFile
+kubectl.exe apply -f $userAuthYamlFile
 
-$kubeContextName = "$(kubectl config current-context)" 
+$kubeContextName = "$(kubectl.exe config current-context)" 
 LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'" 
 
 
 LogStep -Step 6 -Message "Setup helm integration..."
-kubectl -n kube-system create sa tiller
-kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
-helm init --service-account tiller --upgrade
+kubectl.exe -n kube-system create sa tiller
+kubectl.exe create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+helm.exe init --service-account tiller --upgrade
 
 
 LogStep -Step 7 -Message "Enable addons for istio integration...(will take a minute)"
-az aks enable-addons `
+az.cmd aks enable-addons `
     --resource-group $bootstrapValues.aks.resourceGroup `
     --name $bootstrapValues.aks.clusterName `
     --addons http_application_routing | Out-Null
@@ -153,7 +165,7 @@ az aks enable-addons `
 if ($bootstrapValues.aks.useDevSpaces) {
     LogInfo -Message "Enable devspaces on AKS cluster..."
     # NOTE this still installs a preview version of devspace cli, if you installed stable version, do not install cli
-    az aks use-dev-spaces `
+    az.cmd aks use-dev-spaces `
         --resource-group $bootstrapValues.aks.resourceGroup `
         --name $bootstrapValues.aks.clusterName | Out-Null 
 }

@@ -26,7 +26,6 @@ az group create --name $rgName --location $location | Out-Null
 $acrName = $bootstrapValues.acr.name
 $vaultName = $bootstrapValues.kv.name 
 $acrPwdSecretName = $bootstrapValues.acr.passwordSecretName
-LogInfo -Message "Ensure container registry with name '$acrName' is setup for subscription '$($bootstrapValues.global.subscriptionName)'..."
 
 # use ACR
 LogStep -Step 2 -Message "Ensure ACR with name '$acrName' is setup..."

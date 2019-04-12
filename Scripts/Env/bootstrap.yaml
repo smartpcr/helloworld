@@ -20,7 +20,7 @@ terraform:
     stateStorageAccountConnectionString:
     stateBlobContainerName: "tfstate"
 acr:
-    name: "{{ .Values.global.subscriptionAlias }}{{ .Values.global.owner }}{{ .Values.global.envName }}acr"
+    name: "{{ .Values.global.subscriptionAlias }}{{ .Values.global.envName }}acr"
     resourceGroup: "{{ .Values.global.owner }}-acr-rg"
     location: "{{ .Values.global.location }}"
     passwordSecretName: "{{ .Values.global.owner }}-{{ .Values.global.envName }}-acr-pwd"
@@ -60,6 +60,25 @@ aks:
     ssh_cert_pwd_ame: "{{ .Values.global.productShortName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-k8s-ssh-pwd"
     purpose: "{{ .Values.aks.purpose }}"
     useDevSpaces: true
+appInsights:
+    resourceGroup: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-{{ .Values.global.loc }}-rg"
+    resourceType: "Microsoft.Insights/components"
+    name: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-appinsights"
+    location: "West US 2"
+    applicationType: web
+    instrumentationKeySecret: "app-insights-instrumentation-key"
+docDb:
+    account: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-docdb"
+    api: "SQL"
+    db: "docs"
+    collection: "requirements"
+    keySecret: "docdb-key"
+graphDb:
+    account: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-graphdb"
+    api: "Gremlin"
+    db: "graph"
+    collection: "requirements"
+    keySecret: "graphdb-key"
 kvSample:
     servicePrincipal: "{{ .Values.global.subscriptionAlias }}-readonly-spn"
     servicePrincipalPwd: "{{ .Values.global.subscriptionAlias }}-readonly-spn-pwd"
