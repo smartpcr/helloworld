@@ -1,5 +1,5 @@
 global:
-    owner: xd
+    owner: aamva
     envName: dev
     productName: "devspace"
     productShortName: "ds"
