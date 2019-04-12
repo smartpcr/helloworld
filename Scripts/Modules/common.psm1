@@ -100,3 +100,33 @@ function Install-Docker() {
         Remove-Item $tempFile -Force 
     }
 }
+
+
+function InstallDevSpace() {
+    $devSpaceCmd = Get-Command devspace -ErrorAction SilentlyContinue
+    if (!$devSpaceCmd) {
+        mkdir -Force "$Env:APPDATA\devspace" | Out-Null 
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]'Tls,Tls11,Tls12';
+        Invoke-WebRequest -UseBasicParsing ((Invoke-WebRequest -URI "https://github.com/devspace-cloud/devspace/releases/latest" -UseBasicParsing).Content -replace "(?ms).*`"([^`"]*devspace-windows-amd64.exe)`".*", "https://github.com/`$1") -o $Env:APPDATA\devspace\devspace.exe; 
+        & "$Env:APPDATA\devspace\devspace.exe" "install"; $env:Path = (Get-ItemProperty -Path HKCU:\Environment -Name Path).Path
+    }
+    else {
+        Write-Host "devspace is already installed." -ForegroundColor Yellow 
+    }
+}
+
+function InstallPulumi() {
+    $pulumiCommand = Get-Command pulumi -ErrorAction SilentlyContinue
+    if (!$pulumiCommand) {
+        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://get.pulumi.com/install.ps1'))
+        $PATH = [System.Environment]::GetEnvironmentVariable("PATH", "USER")
+        $pulumiBinPath = "$($ENV:USERPROFILE)\.pulumi\bin"
+        if (-not $PATH.Contains($pulumiBinPath)) {
+            $PATH += ";$pulumiBinPath"
+            [System.Environment]::SetEnvironmentVariable("PATH", $PATH, "USER")
+        }
+    }
+    else {
+        Write-Host "pulumi cli is already installed." -ForegroundColor Yellow
+    }
+}

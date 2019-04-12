@@ -10,9 +10,13 @@
 #>
 param([string] $EnvName = "dev")
 
-$scriptFolder = $PSScriptRoot
-if (!$scriptFolder) {
-    $scriptFolder = Get-Location
+$gitRootFolder = if ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
+while (-not (Test-Path (Join-Path $gitRootFolder ".git"))) {
+    $gitRootFolder = Split-Path $gitRootFolder -Parent
+}
+$scriptFolder = Join-Path $gitRootFolder "Scripts"
+if (-not (Test-Path $scriptFolder)) {
+    throw "Invalid script folder '$scriptFolder'"
 }
 
 $envRootFolder = Join-Path $scriptFolder "Env"

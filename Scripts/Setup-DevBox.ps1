@@ -118,7 +118,13 @@ choco install golang -y
 go version 
 
 # JQ
-choco install jq -y
+choco.exe install jq -y
+
+Write-Host "Installing devspace..." -ForegroundColor Green
+InstallDevSpace
+
+Write-Host "Installing pulumi..." -ForegroundColor Green
+InstallPulumi
 
 # trust the gallery so that I can import yamlUtil without prompt
 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
