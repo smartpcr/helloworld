@@ -33,5 +33,5 @@ if (!$existingAppInsights -or ($existingAppInsights -is [array] -and $existingAp
         -appType $bootstrapValues.appInsights.applicationType
 }
 
-$instrumentationKey = az.cmd resource show -g $bootstrapValues.appInsights.resourceGroup -n $bootstrapValues.appInsights.name --resource-type "Microsoft.Insights/components" --query properties.InstrumentationKey
+$instrumentationKey = az resource show -g $bootstrapValues.appInsights.resourceGroup -n $bootstrapValues.appInsights.name --resource-type "Microsoft.Insights/components" --query properties.InstrumentationKey
 az keyvault secret set --vault-name $bootstrapValues.kv.name --name $bootstrapValues.appInsights.instrumentationKeySecret --value $instrumentationKey | Out-Null
