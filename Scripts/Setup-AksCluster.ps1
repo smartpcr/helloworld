@@ -120,7 +120,8 @@ $acr = az.cmd acr show -g $rgName -n $acrName | ConvertFrom-Json
 $acrUsername = $acrName
 $acrPassword = "$(az.cmd acr credential show -n $acrName --query ""passwords[0].value"")"
 $acrLoginServer = $acr.loginServer
-kubectl.exe create -n default secret docker-registry regcred `
+kubectl.exe create namespace $EnvName 
+kubectl.exe create -n $EnvName secret docker-registry regcred `
     --docker-server=$acrLoginServer `
     --docker-username=$acrUsername `
     --docker-password=$acrPassword `
@@ -151,6 +152,7 @@ LogInfo -Message "You are now connected to kubenetes context: '$kubeContextName'
 
 
 LogStep -Step 6 -Message "Setup helm integration..."
+# we can also apply file env/templates/helm-rbac.yaml
 kubectl.exe -n kube-system create sa tiller
 kubectl.exe create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
 helm.exe init --service-account tiller --upgrade
@@ -162,13 +164,17 @@ az.cmd aks enable-addons `
     --name $bootstrapValues.aks.clusterName `
     --addons http_application_routing | Out-Null
 
-if ($bootstrapValues.aks.useDevSpaces) {
-    LogInfo -Message "Enable devspaces on AKS cluster..."
-    # NOTE this still installs a preview version of devspace cli, if you installed stable version, do not install cli
-    az.cmd aks use-dev-spaces `
-        --resource-group $bootstrapValues.aks.resourceGroup `
-        --name $bootstrapValues.aks.clusterName | Out-Null 
-}
+LogInfo -Message "Enable monitoring on AKS cluster..."
+az.cmd aks enable-addons `
+    --resource-group $bootstrapValues.aks.resourceGroup `
+    --name $bootstrapValues.aks.clusterName `
+    --addons monitoring | Out-Null
+
+LogInfo -Message "Enable devspaces on AKS cluster..."
+# NOTE this still installs a preview version of devspace cli, if you installed stable version, do not install cli
+az.cmd aks use-dev-spaces `
+    --resource-group $bootstrapValues.aks.resourceGroup `
+    --name $bootstrapValues.aks.clusterName | Out-Null 
 
 <# run the following block to switch to windows-based authentication, token expiration is much quicker 
 LogInfo -Message "reset kubernetes context..."
@@ -176,3 +182,12 @@ az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --nam
 #>
 
 # az aks browse --resource-group $($bootstrapValues.aks.resourceGroup) --name $($bootstrapValues.aks.clusterName)
+if ($bootstrapValues.global.appInsights) {
+    $instrumentationKeySecret = az.cmd keyvault secret show --vault-name $bootstrapValues.kv.name --name $bootstrapValues.appInsights.instrumentationKeySecret | ConvertFrom-Json
+    $mongoDbKeySecret = az.cmd keyvault secret show --vault-name $bootstrapValues.kv.name --name $bootstrapValues.mongoDb.keySecret | ConvertFrom-Json
+    kubectl.exe create secret generic cosmos-db-secret `
+        --from-literal=user=$bootstrapValues.mongoDb.account `
+        --from-literal=pwd=$mongoDbKeySecret.value `
+        --from-literal=appinsights=$instrumentationKeySecret.value `
+        -n $EnvName
+}

@@ -6,6 +6,8 @@ global:
     resourceGroup: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-{{ .Values.global.loc }}-rg"
     aks: true
     acr: true
+    appInsights: true 
+    mongoDb: true
 kv:
     name: "{{ .Values.global.subscriptionAlias }}-kv"
     resourceGroup: "{{ .Values.global.subscriptionAlias }}-rg"
@@ -73,6 +75,12 @@ docDb:
     db: "docs"
     collection: "requirements"
     keySecret: "docdb-key"
+mongoDb:
+    account: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-mongodb"
+    api: "Mongo"
+    db: "docs"
+    collection: "requirements"
+    keySecret: "mongodb-key"
 graphDb:
     account: "{{ .Values.global.productName }}-{{ .Values.global.envName }}-{{ .Values.global.owner }}-graphdb"
     api: "Gremlin"

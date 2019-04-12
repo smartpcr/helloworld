@@ -37,6 +37,18 @@ EnsureCollectionExists `
     -CollectionName $bootstrapValues.docdb.collection `
     -CosmosDbKey $docdbPrimaryMasterKey
 
+LogStep -Step 3 "Ensure mongodb is created..."
+EnsureCosmosDbAccount -AccountName $bootstrapValues.mongoDb.account -API $bootstrapValues.mongoDb.api -ResourceGroupName $bootstrapValues.global.resourceGroup -Location $bootstrapValues.global.location 
+$mongoDbPrimaryMasterKey = GetCosmosDbAccountKey -AccountName $bootstrapValues.mongoDb.account -ResourceGroupName $bootstrapValues.global.resourceGroup
+az keyvault secret set --vault-name $bootstrapValues.kv.name --name $bootstrapValues.mongoDb.keySecret --value $mongoDbPrimaryMasterKey | Out-Null
+EnsureDatabaseExists -Endpoint "https://$($bootstrapValues.mongoDb.account).documents.azure.com:443/" -MasterKey $mongoDbPrimaryMasterKey -DatabaseName $bootstrapValues.mongoDb.db | Out-Null
+EnsureCollectionExists `
+    -AccountName $bootstrapValues.mongoDb.account `
+    -ResourceGroupName $bootstrapValues.global.resourceGroup `
+    -DbName $bootstrapValues.mongoDb.db `
+    -CollectionName $bootstrapValues.mongoDb.collection `
+    -CosmosDbKey $mongoDbPrimaryMasterKey
+
 Write-Host "6. Ensure graph db is created..." -ForegroundColor Green
 EnsureCosmosDbAccount -AccountName $bootstrapValues.graphdb.account -API $bootstrapValues.graphdb.api -ResourceGroupName $bootstrapValues.global.resourceGroup -Location $bootstrapValues.global.location 
 $graphdbPrimaryMasterKey = GetCosmosDbAccountKey -AccountName $bootstrapValues.graphdb.account -ResourceGroupName $bootstrapValues.global.resourceGroup
