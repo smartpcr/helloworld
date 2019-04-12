@@ -22,10 +22,10 @@ function DownloadCertFromKeyVault {
     param(
         [string] $VaultName,
         [string] $CertName,
-        [string] $ScriptFolder
+        [string] $EnvRootFolder
     )
 
-    $credentialFolder = Join-Path $ScriptFolder "credential"
+    $credentialFolder = Join-Path $EnvRootFolder "credential"
     New-Item -Path $credentialFolder -ItemType Directory -Force | Out-Null
     $pfxCertFile = Join-Path $credentialFolder "$certName.pfx"
     $pemCertFile = Join-Path $credentialFolder "$certName.pem"

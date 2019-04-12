@@ -231,19 +231,19 @@ function LoginAzureAsUser2 {
 function LoginAsServicePrincipal {
     param (
         [string] $EnvName = "dev",
-        [string] $ScriptFolder
+        [string] $EnvRootFolder
     )
     
-    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $ScriptFolder
+    $bootstrapValues = Get-EnvironmentSettings -EnvName $EnvName -EnvRootFolder $EnvRootFolder
     $vaultName = $bootstrapValues.kv.name
     $spnName = $bootstrapValues.global.servicePrincipal
     $certName = $spnName
     $tenantId = $bootstrapValues.global.tenantId
 
-    $privateKeyFilePath = "$ScriptFolder/credential/$certName.key"
+    $privateKeyFilePath = "$EnvRootFolder/credential/$certName.key"
     if (-not (Test-Path $privateKeyFilePath)) {
         LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName
-        DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -EnvRootFolder $ScriptFolder
+        DownloadCertFromKeyVault -VaultName $vaultName -CertName $certName -EnvRootFolder $EnvRootFolder
     }
     
     LogInfo -Message "Login as service principal '$spnName'"
