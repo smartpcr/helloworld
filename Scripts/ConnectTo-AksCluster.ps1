@@ -23,10 +23,10 @@ SetupGlobalEnvironmentVariables -ScriptFolder $scriptFolder
 $bootstrapValues = Get-EnvironmentSettings -EnvName $envName -EnvRootFolder $envFolder
 LoginAzureAsUser2 -SubscriptionName $bootstrapValues.global.subscriptionName | Out-Null
 if ($AsAdmin) {
-    az.cmd aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
+    az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName --admin
 } 
 else {
-    az.cmd aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName | Out-Null
+    az aks get-credentials --resource-group $bootstrapValues.aks.resourceGroup --name $bootstrapValues.aks.clusterName | Out-Null
 }
 
 $kubeContextName = "$(kubectl.exe config current-context)" 
