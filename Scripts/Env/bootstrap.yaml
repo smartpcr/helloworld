@@ -26,6 +26,7 @@ acr:
     passwordSecretName: "{{ .Values.global.owner }}-{{ .Values.global.envName }}-acr-pwd"
     email: "{{ .Values.acr.email }}"
 helm: 
+    repo: helm 
     storageAccountName: "{{ .Values.helm.helmStorageAccountName }}"
     blobContainerName: "{{ .Values.helm.helmBlobContainerName }}"
 sf:
