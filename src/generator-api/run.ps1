@@ -37,7 +37,7 @@ dotnet build generator-api.csproj
 dotnet publish generator-api.csproj
 $imageTag = "master-commitId"
 $imageName = "generator-api"    
-docker build -t "$($imageName):$($imageTag)" .
+docker build -t "$($imageName):$($imageTag)" $apiProjectFolder 
 docker tag "$($imageName):$($imageTag)" "$($acrLoginServer)/$($imageName):$($imageTag)"
 
 Write-Host "4) publishing image to acr..."
