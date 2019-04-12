@@ -1,0 +1,17 @@
+global:
+    owner: xd
+    envName: dev
+    productName: "azds"
+    productShortName: "azuredevspace"
+    subscriptionName: RRD MSDN Premium
+    tenantId: f7215caf-efd9-4bac-89c5-a3cf109a9f18
+    subscriptionAlias: rrdp
+acr:
+    email: lingxd@gmail.com
+aks:
+    aksDnsPrefix: hw-aks-xd
+    aksOwnerAadUpn: lingxd@gmail.com
+    purpose: devspace
+helm:
+    helmStorageAccountName: oneeshelm
+    helmBlobContainerName: helm

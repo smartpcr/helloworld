@@ -116,7 +116,7 @@ $aksSpn = az.cmd ad sp list --display-name $aksSpnName | ConvertFrom-Json
 az.cmd role assignment create --assignee $aksSpn.appId --scope $acrId --role contributor | Out-Null
 
 LogInfo -Message "Creating kube secret to store docker repo credential..."
-$acr = az.cmd acr show -g $rgName -n $acrName | ConvertFrom-Json
+$acr = az.cmd acr show -g $bootstrapValues.acr.resourceGroup -n $acrName | ConvertFrom-Json
 $acrUsername = $acrName
 $acrPassword = "$(az.cmd acr credential show -n $acrName --query ""passwords[0].value"")"
 $acrLoginServer = $acr.loginServer
