@@ -53,16 +53,16 @@ The product will be used by other software developers to:
 2. Setup service principal authentication and devbox pre-requirements by running `.\Scripts\bootstrap.ps1 -EnvName dev`
 3. Navigate to azure portal and AAD app registration, look for cluster app, make sure:
     - its secret is set: 
-        ![aad app secret](./instruction/cluster-app-secrets.png)
+        ![aad app secret](https://github.com/smartpcr/helloworld/blob/master/Instruction/cluster-app-secrets.PNG)
     - API permissions are granted
-        ![aks app permission](./instruction/cluster-app-permissions.png)
+        ![aks app permission](https://github.com/smartpcr/helloworld/blob/master/Instruction/cluster-app-permissions.PNG)
     - owner is set
-        ![aks app owner](./instruction/cluster-app-owner.png)
+        ![aks app owner](https://github.com/smartpcr/helloworld/blob/master/Instruction/cluster-app-owner.png)
 4. Look for aks client app, make sure:
     - owner is set 
-        ![client app owner](./instruction/client-app-owner.png)
+        ![client app owner](https://github.com/smartpcr/helloworld/blob/master/Instruction/client-app-owner.PNG)
     - its permission is set 
-        ![client app permission](./instruction/client-app-permissions.png)
+        ![client app permission](https://github.com/smartpcr/helloworld/blob/master/Instruction/client-app-permissions.PNG)
     - API permission is granted, make sure user impersonation is checked
-        ![client app impersonation](./instruction/client-app-impersonation.png)
+        ![client app impersonation](https://github.com/smartpcr/helloworld/blob/master/Instruction/client-app-impersonation.PNG)
     
