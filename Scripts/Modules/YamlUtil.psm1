@@ -17,19 +17,29 @@ function Get-EnvironmentSettings {
         [string] $EnvRootFolder
     )
     
-    $values = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | ConvertFrom-Yaml2
+    $valuesOverride = Get-Content (Join-Path $EnvRootFolder "values.yaml") -Raw | ConvertFrom-Yaml2
     if ($EnvName) {
         $envFolder = Join-Path $EnvRootFolder $EnvName
-        $envValueYamlFile =  Join-Path $envFolder "values.yaml"
+        $envValueYamlFile = Join-Path $envFolder "values.yaml"
         if (Test-Path $envValueYamlFile) {
             $envValues = Get-Content $envValueYamlFile -Raw | ConvertFrom-Yaml2
-            Copy-YamlObject -fromObj $envValues -toObj $values
+            Copy-YamlObject -fromObj $envValues -toObj $valuesOverride
         }
     }
 
     $bootstrapTemplate = Get-Content "$EnvRootFolder\bootstrap.yaml" -Raw
-    $bootstrapTemplate = Set-YamlValues -valueTemplate $bootstrapTemplate -settings $values
+    $bootstrapTemplate = Set-YamlValues -valueTemplate $bootstrapTemplate -settings $valuesOverride
     $bootstrapValues = $bootstrapTemplate | ConvertFrom-Yaml2
+
+    $propertiesOverride = GetProperties -subject $valuesOverride
+    $targetProperties = GetProperties -subject $bootstrapValues
+    $propertiesOverride | ForEach-Object {
+        $propOverride = $_ 
+        $targetPropFound = $targetProperties | Where-Object { $_ -eq $propOverride }
+        if ($targetPropFound) {
+            
+        }
+    }
 
     return $bootstrapValues
 }
@@ -48,7 +58,7 @@ function Copy-YamlObject {
         if ($value) {
             $tgtName = $toObj.Keys | Where-Object { $_ -eq $name }
             if (!$tgtName) {
-                $toObj.Add($name, $value)
+                $toObj.Add($name, $value) | Out-Null
             }
             else {
                 $tgtValue = $toObj.Item($tgtName)
@@ -67,7 +77,7 @@ function Copy-YamlObject {
 
 function Set-YamlValues {
     param (
-        [object] $valueTemplate,
+        [string] $valueTemplate,
         [object] $settings
     )
 
@@ -85,7 +95,7 @@ function Set-YamlValues {
                 $replacements.Add(@{
                         oldValue = $toBeReplaced
                         newValue = $replaceValue
-                    })
+                    }) | Out-Null
             }
             else {
                 Write-Warning "Invalid value for path '$searchKey': $found"
@@ -151,4 +161,54 @@ function GetPropertyValue {
     }
 
     return $currentObject
+}
+
+function GetProperties {
+    param(
+        [object] $subject,
+        [string] $parentPropName
+    )
+
+    $props = New-Object System.Collections.ArrayList
+    $subject.Keys | ForEach-Object {
+        $currentPropName = $_ 
+        $value = $subject[$currentPropName]
+
+        if ($value) {
+            $propName = $currentPropName
+            if ($null -ne $parentPropName -and $parentPropName.Length -gt 0) {
+                $propName = $parentPropName + "." + $currentPropName
+            }
+            Write-Host "Evaluating '$propName'"
+            
+            if (IsPrimitiveValue -inputValue $value) {
+                $props.Add($propName) | Out-Null
+            }
+            else {
+                $nestedProps = GetProperties -subject $value -parentPropName $propName
+                if ($nestedProps -and $nestedProps.Count -gt 0) {
+                    $nestedProps | ForEach-Object {
+                        $props.Add($_) | Out-Null
+                    }
+                }
+            }
+        }
+    }
+
+    return $props 
+}
+
+function IsPrimitiveValue {
+    param([object] $inputValue) 
+
+    if ($null -eq $inputValue) {
+        return $true
+    }
+
+    $type = $inputValue.GetType()
+    if ($type.IsPrimitive -or $type.IsEnum -or $type.Name -ieq "string") {
+        return $true
+    }
+
+    return $false;
 }
