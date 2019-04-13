@@ -37,7 +37,11 @@ function Get-EnvironmentSettings {
         $propOverride = $_ 
         $targetPropFound = $targetProperties | Where-Object { $_ -eq $propOverride }
         if ($targetPropFound) {
-            
+            $newValue = GetPropertyValue -subject $valuesOverride -propertyPath $targetPropFound
+            $existingValue = GetPropertyValue -subject $bootstrapValues -propertyPath $targetPropFound
+            if ($null -ne $newValue -and $existingValue -ne $newValue) {
+                SetPropertyValue -targetObject $bootstrapValues -propertyPath $targetPropFound -propertyValue $newValue
+            }
         }
     }
 
@@ -179,7 +183,6 @@ function GetProperties {
             if ($null -ne $parentPropName -and $parentPropName.Length -gt 0) {
                 $propName = $parentPropName + "." + $currentPropName
             }
-            Write-Host "Evaluating '$propName'"
             
             if (IsPrimitiveValue -inputValue $value) {
                 $props.Add($propName) | Out-Null
@@ -211,4 +214,39 @@ function IsPrimitiveValue {
     }
 
     return $false;
+}
+
+function SetPropertyValue {
+    param(
+        [object] $targetObject,
+        [string] $propertyPath,
+        [object] $propertyValue 
+    )
+    
+    if ($null -eq $targetObject) {
+        return
+    }
+
+    $propNames = $propertyPath.Split(".")
+    $currentValue = $targetObject 
+    $index = 0
+    while ($index -lt $propNames.Count) {
+        $propName = $propNames[$index]
+
+        if ($index -eq $propNames.Count - 1) {
+            $oldValue = $currentValue[$propName]
+            $currentValue[$propName] = $propertyValue
+            Write-Host "`tChange value for property '$propertyPath' from '$oldValue' to '$propertyValue'" -ForegroundColor White
+            return 
+        }
+        else {
+            $currentValue = $currentValue[$propName]
+            if ($null -eq $currentValue) {
+                Write-Warning "Unable to find property with path '$propertyPath'"
+                return
+            }
+        }
+
+        $index++
+    }
 }

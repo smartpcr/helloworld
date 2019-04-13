@@ -6,12 +6,20 @@ global:
     subscriptionName: AAMVA MSDN
     tenantId: bdfb6927-543a-47bc-af5b-95bc2279b99e
     subscriptionAlias: aamva
+    resourceGroup: "ds-dev-rg"
 acr:
     email: lingxd@gmail.com
+    resourceGroup: "ds-dev-rg"
 aks:
     aksDnsPrefix: hw-aks-xd
     aksOwnerAadUpn: lingxd@gmail.com
     purpose: devspace
+    clusterName: "ds-k8s-dev" 
+    resourceGroup: "ds-dev-rg"
 helm:
     helmStorageAccountName: oneeshelm
     helmBlobContainerName: helm
+terraform:
+    resourceGroup: "ds-dev-rg"
+appInsights:
+    resourceGroup: "ds-dev-rg"
